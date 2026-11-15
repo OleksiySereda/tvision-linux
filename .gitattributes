@@ -1,0 +1,4 @@
+* text=auto eol=lf
+*.hlp binary
+*.tvf binary
+help/demohelp.txt -text

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Turbo Vision for Linux</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+<nav class="side">
+<div class="brand"><a href="index.html">Turbo Vision for Linux</a></div>
+<div class="sub">Port of Turbo Vision 1.0 (Borland C++ 3.1) to GCC / C++11</div>
+<h4>Documents</h4><ul><li><a href="classes.html">Class reference</a></li><li><a href="porting.html">Porting guide</a></li></ul>
+</nav>
+<main>
+<h1>Turbo Vision for Linux</h1>
+<p class="lead">Borland Turbo Vision 1.0 for C++, ported from Borland C++ 3.1 / DOS
+to GCC and C++11. Programs run full-screen in any xterm-compatible terminal,
+including over ssh, and follow the size of the terminal window.</p>
+<div class="cards">
+<div class="card"><h3><a href="classes.html">Class reference</a></h3>
+<p>The class hierarchy and all 112 classes by area — views, menus, dialogs,
+editors, help, collections, streams, resources, system layer — each with an
+example.</p></div>
+<div class="card"><h3><a href="porting.html">Porting guide</a></h3>
+<p>What differs from the original library, terminal behaviour and settings, and
+step-by-step instructions for moving DOS code to the port.</p></div>
+</div>
+<h2>Quick start</h2>
+<pre><code>cd linux
+make                    # lib/libtv.a and the demos in bin/
+cd bin &amp;&amp; ./tvdemo      # Alt-X quits</code></pre>
+<h2>What is included</h2>
+<table>
+<tr><th>Path</th><th>Contents</th></tr>
+<tr><td><code>include/</code></td><td>Library headers (<code>tv.h</code> and the class headers); <code>include/compat/</code> holds stand-ins for Borland headers such as <code>dos.h</code>, <code>dir.h</code>, <code>iostream.h</code>.</td></tr>
+<tr><td><code>source/</code></td><td>Library sources; <code>source/platform/</code> is the new terminal driver.</td></tr>
+<tr><td><code>demos/</code></td><td>TVDEMO, TVEDIT, TVFORMS (with the form generators), HELLO.</td></tr>
+<tr><td><code>docdemos/</code></td><td>The examples from the Turbo Vision guide (TVGUID01–19, TVG17B).</td></tr>
+<tr><td><code>help/</code></td><td>TVHC, the help compiler, and the demo help source.</td></tr>
+<tr><td><code>tools/</code></td><td><code>keytest</code>, tmux test scripts, the converter used for the port, this documentation's generator.</td></tr>
+</table>
+
+</main>
+</div>
+</body>
+</html>

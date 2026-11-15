@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Turbo Vision Porting Guide</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+<nav class="side">
+<div class="brand"><a href="index.html">Turbo Vision for Linux</a></div>
+<div class="sub">Port of Turbo Vision 1.0 (Borland C++ 3.1) to GCC / C++11</div>
+<h4>Contents</h4><ul>
+<li><a href="#glance">At a glance</a></li>
+<li><a href="#build">Building and linking</a></li>
+<li><a href="#terminal">Running in a terminal</a></li>
+<li><a href="#keyboard">Keyboard and mouse</a></li>
+<li><a href="#codepage">Character set and code pages</a></li>
+<li><a href="#env">Environment variables</a></li>
+<li><a href="#api">API differences</a></li>
+<li><a href="#files">Files and paths</a></li>
+<li><a href="#formats">Data and file formats</a></li>
+<li><a href="#migrate">Migrating a program step by step</a></li>
+<li><a href="#fixes">Bugs of the original fixed in the port</a></li>
+<li><a href="#limits">Known limitations</a></li>
+<li><a href="#tools">Tools</a></li>
+</ul><h4>See also</h4><ul><li><a href="classes.html">Class reference</a></li></ul>
+</nav>
+<main>
+<h1>Porting guide</h1>
+<p class="lead">How the Linux port differs from the original Borland Turbo Vision 1.0, how to use it in a terminal, and what to change in existing programs.</p>
+<h2 id="glance">At a glance</h2>
+<p>The public interface of the library is the one of Turbo Vision 1.0: the
+same classes, members, commands, key codes, palettes and stream format. A program
+written for the DOS version needs changes only where it relied on DOS, on the
+Borland compiler or on 16-bit sizes. The table summarizes what changed underneath.</p>
+<table>
+<tr><th>Area</th><th>Borland C++ 3.1 / DOS</th><th>Linux port</th></tr>
+<tr><td>Compiler</td><td>Borland C++ 3.1, large memory model</td><td>GCC, <code>-std=c++11</code>, 64-bit</td></tr>
+<tr><td>Screen</td><td>Video memory at B800:0000, BIOS INT 10h</td><td>In-memory cell buffer sent to the terminal with ANSI escape sequences, only changed cells</td></tr>
+<tr><td>Screen size</td><td>25, 43 or 50 rows, 80 columns, fixed while running</td><td>Taken from the terminal; follows window resizing (<code>SIGWINCH</code>); up to 1024 columns</td></tr>
+<tr><td>Keyboard</td><td>BIOS INT 16h scan codes</td><td>Terminal escape sequences decoded into the same BIOS-style <code>kb...</code> codes</td></tr>
+<tr><td>Mouse</td><td>Mouse driver INT 33h</td><td>xterm SGR mouse reports (modes 1002 + 1006)</td></tr>
+<tr><td>Characters</td><td>Code page of the PC (CP437 in the US)</td><td>8-bit code page inside (437, 866 or 1125), UTF-8 on the terminal</td></tr>
+<tr><td>Assembler</td><td>9 <code>.ASM</code> modules, inline <code>asm</code></td><td>All rewritten in C++</td></tr>
+<tr><td>File system</td><td>Drive letters, <code>\</code>, 8.3 names, case-insensitive</td><td><code>/</code>, no drives, long case-sensitive names</td></tr>
+<tr><td>Text files</td><td>CR LF</td><td>LF (the editor converts both ways)</td></tr>
+<tr><td>Iostreams</td><td>Pre-standard <code>iostream.h</code></td><td>Standard <code>&lt;iostream&gt;</code>; compatibility headers keep the old names</td></tr>
+<tr><td>Critical errors, Ctrl-Break</td><td>INT 24h / 1Bh / 23h handlers</td><td>None; Ctrl-C is an ordinary key</td></tr>
+</table>
+<h2 id="build">Building and linking</h2>
+<p>Requirements: <code>g++</code> with C++11 support (tested with GCC 13 and 15) and
+GNU make. There are no other dependencies; the terminal is driven directly through
+<code>termios</code>, so ncurses is not needed.</p>
+<pre><code>make            # lib/libtv.a, demos and docdemos in bin/
+make lib        # the library only
+make DEBUG=1    # -O0 -g
+make ASAN=1     # AddressSanitizer + UndefinedBehaviorSanitizer
+make check-help # compiles help/demohelp.txt and compares it with the DOS DEMOHELP.HLP
+make clean</code></pre>
+<p>To build your own program, add both include directories and link the archive
+with <code>--whole-archive</code>:</p>
+<pre><code>TV = /path/to/linux
+
+g++ -std=c++11 -I$(TV)/include -I$(TV)/include/compat -c myapp.cpp
+g++ -o myapp myapp.o -Wl,--whole-archive $(TV)/lib/libtv.a -Wl,--no-whole-archive</code></pre>
+<div class="note"><b>Why <code>--whole-archive</code>?</b> Every streamable class
+registers itself through a static <code>TStreamableClass</code> object. A plain static
+link drops modules that nothing references, and reading such a class from a stream
+then fails. The DOS version solved this with <code>__link()</code>, which still works;
+<code>--whole-archive</code> simply keeps everything.</div>
+<p><code>include/compat/</code> contains stand-ins for Borland headers
+(<code>dos.h</code>, <code>dir.h</code>, <code>mem.h</code>, <code>alloc.h</code>,
+<code>bios.h</code>, <code>conio.h</code>, <code>io.h</code>, <code>iostream.h</code>,
+<code>fstream.h</code>, <code>iomanip.h</code>, <code>strstrea.h</code>,
+<code>strstream.h</code>), so most existing <code>#include</code> lines compile
+unchanged. They all map to <code>tvcompat.h</code> and the standard library.</p>
+<p>The library replaces the global <code>operator new</code>/<code>delete</code> (and
+their array forms), as the original did, to keep the TV safety pool working. Do not
+replace them again in your program.</p>
+<h2 id="terminal">Running in a terminal</h2>
+<p>Any xterm-compatible terminal works: xterm, GNOME Terminal, Konsole, Windows
+Terminal, PuTTY, iTerm2, tmux and screen, and the Linux console. Over ssh nothing
+extra is needed. The terminal should use UTF-8.</p>
+<table>
+<tr><th>Aspect</th><th>Behaviour</th></tr>
+<tr><td>Start</td><td>The terminal switches to full-screen mode when a <code>TProgram</code> (normally your <code>TApplication</code>) is constructed: raw input, alternate screen, auto-wrap off, mouse reporting on. Programs that only use collections or streams keep a normal console.</td></tr>
+<tr><td>Exit</td><td>The previous terminal state is restored on normal exit, on <code>exit()</code>, and on <code>SIGTERM</code>, <code>SIGHUP</code>, <code>SIGINT</code>, <code>SIGQUIT</code>, <code>SIGSEGV</code>, <code>SIGBUS</code>, <code>SIGFPE</code> and <code>SIGABRT</code>.</td></tr>
+<tr><td>Size</td><td>Read with <code>TIOCGWINSZ</code>; if that fails, <code>$COLUMNS</code>/<code>$LINES</code>; otherwise 80×25. Widths above 1024 are clipped.</td></tr>
+<tr><td>Resizing</td><td>On <code>SIGWINCH</code>, <code>TProgram::getEvent()</code> resizes the screen buffer and calls <code>changeBounds()</code> on the application. The desktop, menu bar and status line follow; windows (<code>gfGrowRel</code>) scale; dialogs without a grow mode keep their size and are clipped.</td></tr>
+<tr><td>Output</td><td>Only cells that changed since the last frame are sent. When nothing changes, nothing is written, so an idle program causes no ssh traffic.</td></tr>
+<tr><td>Colors</td><td>The 16 CGA colors map to ANSI colors 30–37/90–97 (foreground) and 40–47/100–107 (background). Attribute bit 7 means bright background, not blinking.</td></tr>
+<tr><td>Cursor</td><td>Shown where <code>TView::resetCursor()</code> puts it. Insert mode (<code>sfCursorIns</code>) gives a block cursor, overwrite mode an underline (<code>ESC [ n q</code>).</td></tr>
+<tr><td>Idle</td><td>When there is no input, <code>getEvent()</code> calls <code>idle()</code>, flushes the screen and waits up to 30 ms for input instead of polling in a loop.</td></tr>
+<tr><td>Suspend</td><td><code>TApplication::suspend()</code> gives the normal screen back (for running a shell); <code>resume()</code> takes it again and repaints everything. Resuming after <code>SIGCONT</code> also repaints.</td></tr>
+</table>
+<h2 id="keyboard">Keyboard and mouse</h2>
+<p>Terminal input is decoded into the BIOS-style key codes of <code>tkeys.h</code>,
+so <code>kbF1</code>, <code>kbAltX</code>, <code>kbCtrlLeft</code> and the rest work
+as before. The decoder understands xterm, VT220, rxvt and Linux console
+sequences.</p>
+<table>
+<tr><th>Keys</th><th>How they arrive</th><th>TV code</th></tr>
+<tr><td>Printable characters</td><td>ASCII or UTF-8</td><td><code>scan&lt;&lt;8 | char</code> (US scan codes); non-ASCII characters as the code-page byte</td></tr>
+<tr><td>Enter, Tab, Backspace, Esc</td><td><code>CR</code>, <code>TAB</code>, <code>DEL</code>/<code>BS</code>, <code>ESC</code></td><td><code>kbEnter</code>, <code>kbTab</code>, <code>kbBack</code>, <code>kbEsc</code></td></tr>
+<tr><td>Ctrl+letter</td><td>control characters 1–26</td><td><code>kbCtrlA</code>…<code>kbCtrlZ</code>, including Ctrl-C, Ctrl-S, Ctrl-Q, Ctrl-Z</td></tr>
+<tr><td>Alt+letter / digit</td><td><code>ESC</code> followed by the character</td><td><code>kbAltA</code>…, <code>kbAlt1</code>…, <code>kbAltSpace</code>, <code>kbAltMinus</code>, <code>kbAltEqual</code></td></tr>
+<tr><td>Alt+Cyrillic letter</td><td><code>ESC</code> + UTF-8 letter</td><td>the Alt code of the Latin key in the same position of the ЙЦУКЕН layout (Alt+«а» = Alt-F)</td></tr>
+<tr><td>F1–F12</td><td><code>ESC O P</code>…, <code>ESC [ 11~</code>…, <code>ESC [ [ A</code>…</td><td><code>kbF1</code>…; with Shift/Ctrl/Alt: <code>kbShiftF1</code>, <code>kbCtrlF1</code>, <code>kbAltF1</code>…</td></tr>
+<tr><td>Arrows, Home, End, PgUp, PgDn</td><td><code>ESC [ A</code>…, <code>ESC [ 1;5D</code> (with modifiers)</td><td><code>kbUp</code>…, <code>kbCtrlLeft</code>, <code>kbCtrlPgUp</code>…</td></tr>
+<tr><td>Ins, Del</td><td><code>ESC [ 2~</code>, <code>ESC [ 3~</code></td><td><code>kbIns</code>, <code>kbDel</code>; Shift/Ctrl: <code>kbShiftIns</code>, <code>kbCtrlIns</code>, <code>kbShiftDel</code>, <code>kbCtrlDel</code></td></tr>
+<tr><td>Shift+Tab</td><td><code>ESC [ Z</code></td><td><code>kbShiftTab</code></td></tr>
+</table>
+<ul>
+<li><b>Esc alone</b> is recognized after 40 ms without a following character.</li>
+<li><b>Shift state.</b> DOS programs read the BIOS byte at 0040:0017. The port keeps
+the Shift/Ctrl/Alt state of the most recent key or mouse event; read it with
+<code>TEventQueue::getShiftState()</code> (bits <code>kbLeftShift</code>,
+<code>kbCtrlShift</code>, <code>kbAltShift</code>). A terminal reports modifiers only
+together with a key, so Shift on its own cannot be detected.</li>
+<li><b>Mouse.</b> Left and right buttons, dragging, double click
+(<code>TEventQueue::doubleDelay</code>) and auto repeat work. The wheel is ignored,
+as Turbo Vision 1.0 has no wheel events. The terminal draws the pointer, so
+<code>TMouse::show()</code>/<code>hide()</code> do nothing. Holding Shift while
+clicking usually lets the terminal select text instead.</li>
+<li><b>Keys a terminal may not send.</b> Some terminals use Shift+PgUp, Ctrl+Ins,
+Shift+Ins, Alt+F-keys or F11 themselves. Run <code>bin/keytest</code> to see what
+yours delivers.</li>
+</ul>
+<h2 id="codepage">Character set and code pages</h2>
+<p>Inside the library every character is still one byte, so strings, the
+editor and the stream formats are unchanged. The byte is interpreted in an 8-bit
+code page chosen at startup with <code>TVCODEPAGE</code>:</p>
+<table>
+<tr><th><code>TVCODEPAGE</code></th><th>Code page</th><th>Use</th></tr>
+<tr><td><code>437</code> (default)</td><td>IBM PC, US</td><td>The original look: frames, ░▒▓, ☺♥, ≡, accented Latin letters</td></tr>
+<tr><td><code>866</code></td><td>DOS Cyrillic (Russian)</td><td>Cyrillic text; no Ukrainian і/ґ</td></tr>
+<tr><td><code>1125</code></td><td>DOS Cyrillic (Ukrainian, RUSCII)</td><td>Ukrainian text with Ґ ґ Є є І і Ї ї</td></tr>
+</table>
+<ul>
+<li><b>Output:</b> each byte is translated to Unicode and sent as UTF-8. The control
+range 0x00–0x1F is shown with the CP437 glyphs (☺ ☻ ♥ ► ▲ …), as on a PC screen.
+The box-drawing range 0xB0–0xDF is the same in all three code pages.</li>
+<li><b>Input:</b> UTF-8 characters are translated to the code page byte; characters
+that the code page does not have are ignored.</li>
+<li><b>Source code:</b> keep code-page characters in string literals as escapes
+(<code>"\xC4"</code> or <code>"\304"</code>). A literal typed in a UTF-8 editor is
+several bytes and draws as several wrong characters.</li>
+<li>In CP866/1125 the bytes 0xF0–0xFF are Cyrillic, so the CP437 glyph ≡ (0xF0) used
+for the system menu shows as Ё.</li>
+<li><b>Editor files:</b> <code>TFileEditor</code> reads a UTF-8 file whose
+characters all exist in the code page by converting it to the code page, and saves
+it back as UTF-8. Other files are edited byte for byte. New files are saved as
+UTF-8.</li>
+</ul>
+<h2 id="env">Environment variables</h2>
+<table>
+<tr><th>Variable</th><th>Effect</th></tr>
+<tr><td><code>TVCODEPAGE</code></td><td><code>437</code>, <code>866</code> or <code>1125</code>; see above.</td></tr>
+<tr><td><code>TVMONO</code></td><td>Any value other than <code>0</code> selects the monochrome palette (<code>smMono</code>).</td></tr>
+<tr><td><code>TERM</code></td><td><code>dumb</code> and <code>vt100</code> also select monochrome; otherwise color is used.</td></tr>
+<tr><td><code>COLUMNS</code>, <code>LINES</code></td><td>Fallback screen size when the terminal does not report it.</td></tr>
+<tr><td><code>HOME</code></td><td>Used to expand <code>~/</code> in file names.</td></tr>
+<tr><td><code>SHELL</code></td><td>The demos' Shell command runs it (fallback <code>/bin/sh</code>).</td></tr>
+</table>
+<h2 id="api">API differences</h2>
+<p>Members that were added, removed or changed compared with Turbo Vision 1.0.
+Everything not listed behaves as documented by Borland.</p>
+<table>
+<tr><th>Class / function</th><th>Original</th><th>Linux port</th></tr>
+<tr><td><code>TScreen::screenWidth</code>, <code>screenHeight</code></td><td><code>uchar</code></td><td><code>ushort</code> (terminals can be wider than 255 columns)</td></tr>
+<tr><td><code>TScreen::screenBuffer</code></td><td><code>uchar far *</code> into video memory</td><td><code>ushort *</code>: an in-memory cell buffer, reallocated when the size changes</td></tr>
+<tr><td><code>TScreen::flushScreen()</code></td><td>—</td><td>New: sends changed cells to the terminal. Called by <code>getEvent()</code>; call it yourself to show output during a long operation.</td></tr>
+<tr><td><code>TScreen::setCursorPos()</code>, <code>checkResize()</code></td><td>—</td><td>New, used by <code>TView::resetCursor()</code> and <code>TProgram::getEvent()</code></td></tr>
+<tr><td><code>TDisplay::clearScreen(w, h)</code></td><td><code>uchar</code> arguments</td><td><code>ushort</code> arguments</td></tr>
+<tr><td><code>TDisplay::setCrtMode()</code>, <code>TProgram::setScreenMode()</code></td><td>Switch video mode, 8×8 font for 43/50 rows</td><td>Only record color / black-and-white / monochrome; <code>smFont8x8</code> has no effect</td></tr>
+<tr><td><code>TDisplay::videoInt()</code>, <code>equipment</code>, <code>crtInfo</code>, <code>crtRows</code></td><td>BIOS access</td><td>Removed</td></tr>
+<tr><td><code>TEventQueue::getShiftState()</code></td><td>—</td><td>New: Shift/Ctrl/Alt state of the last event</td></tr>
+<tr><td><code>TEventQueue::Ticks</code>, <code>mouseInt()</code>, <code>eventQueue</code></td><td>BIOS timer, mouse interrupt handler</td><td>Removed; timing comes from <code>CLOCK_MONOTONIC</code> (18.2 ticks per second as before)</td></tr>
+<tr><td><code>THWMouse::registerHandler()</code></td><td>Install an INT 33h handler</td><td>Removed; <code>show()</code>/<code>hide()</code>/<code>setRange()</code> do nothing</td></tr>
+<tr><td><code>TSystemError</code>, <code>Int11trap</code></td><td>Critical error, Ctrl-Break and keyboard interrupt handlers</td><td><code>suspend()</code>/<code>resume()</code> do nothing; <code>Int11trap</code> removed</td></tr>
+<tr><td><code>TView::writeView()</code></td><td><code>static void writeView( write_args )</code> in assembler</td><td><code>void writeView( short x, short y, short count, const void *b )</code>; <code>write_args</code> removed</td></tr>
+<tr><td><code>TView::calcBounds()</code></td><td>Clamps every view to its owner's size</td><td>A view with <code>growMode == 0</code> keeps its bounds (no clamp), so dialogs survive a temporarily small terminal</td></tr>
+<tr><td><code>TWindowInit</code>, <code>TDeskInit</code></td><td>One constructor</td><td>Additional <code>( StreamableInit )</code> constructor for virtual-base initialization of streamed objects</td></tr>
+<tr><td><code>TProgram::TProgram()</code></td><td>—</td><td>Switches the terminal to full-screen mode</td></tr>
+<tr><td><code>TProgram::getEvent()</code></td><td>Polls mouse and keyboard</td><td>Also handles resizing, flushes the screen and waits for input when idle</td></tr>
+<tr><td><code>fpbase</code>, <code>ifpstream</code>, <code>ofpstream</code>, <code>fpstream</code></td><td>Constructors from a DOS file handle, <code>attach()</code>, <code>filebuf::openprot</code></td><td>Handle constructors and <code>attach()</code> removed; the protection argument is accepted and ignored; based on <code>std::filebuf</code>. <code>fpstream</code> creates a missing file opened <code>in | out</code>.</td></tr>
+<tr><td><code>ipstream::seekg()</code>, <code>opstream::seekp()</code></td><td><code>ios::seek_dir</code></td><td><code>std::ios::seekdir</code></td></tr>
+<tr><td><code>ipstream &gt;&gt;</code>, <code>opstream &lt;&lt;</code></td><td><code>signed char</code>, <code>unsigned char</code></td><td>Also plain <code>char</code></td></tr>
+<tr><td><code>long</code> in streams</td><td>4 bytes</td><td>Still 4 bytes on disk (values are truncated to 32 bits); <code>int</code> is still written as 16 bits</td></tr>
+<tr><td><code>TTextDevice</code>, <code>otstream</code></td><td>Old <code>streambuf</code> / <code>ostream</code></td><td><code>std::streambuf</code> / <code>std::ostream</code>; bulk output goes through <code>do_sputn()</code></td></tr>
+<tr><td><code>TParamText::setData()</code></td><td>The record is used as a <code>va_list</code></td><td>The format is interpreted by the library; each parameter is one <code>long</code>-sized slot (number or <code>char *</code>)</td></tr>
+<tr><td><code>TFileEditor</code></td><td>—</td><td>New members <code>dosLineEnds</code> and <code>utf8Text</code>; backup file <code>name.ext.bak</code> (was <code>name.BAK</code>)</td></tr>
+<tr><td><code>maxViewWidth</code></td><td>132</td><td>1024</td></tr>
+<tr><td><code>maxCollectionSize</code></td><td>(64 KB − 16) / <code>sizeof(void*)</code></td><td><code>INT_MAX / sizeof(void*)</code></td></tr>
+<tr><td>Path functions in <code>util.h</code></td><td>Drive letters, <code>\</code>, upper case</td><td>See <a href="#files">Files and paths</a></td></tr>
+</table>
+<h2 id="files">Files and paths</h2>
+<p>The file dialogs and path helpers work with Unix paths.</p>
+<table>
+<tr><th>Function / class</th><th>Behaviour in the port</th></tr>
+<tr><td><code>fexpand()</code></td><td>Makes an absolute path: prepends the current directory, expands <code>~/</code>, resolves <code>.</code>, <code>..</code> and <code>//</code>, keeps a trailing <code>/</code>. Does not change the case.</td></tr>
+<tr><td><code>getCurDir()</code></td><td>The current directory with a trailing <code>/</code>.</td></tr>
+<tr><td><code>pathValid()</code>, <code>isDir()</code></td><td>Use <code>stat()</code>.</td></tr>
+<tr><td><code>validFileName()</code></td><td>Accepts any name in an existing directory (no DOS character restrictions).</td></tr>
+<tr><td><code>driveValid()</code></td><td>Always <code>True</code>.</td></tr>
+<tr><td><code>TFileDialog</code></td><td><code>*.*</code> matches every file; typing a name without extension keeps it as it is when the file exists or the wildcard extension is a pattern; directories are shown as <code>name/</code>.</td></tr>
+<tr><td><code>TChDirDialog</code>, <code>TDirListBox</code></td><td>The tree starts at <code>/</code>; there is no “Drives” entry; subdirectories are sorted.</td></tr>
+<tr><td><code>TFileEditor</code></td><td>LF files: converted to CR LF on load, saved with LF. CR LF files: saved with CR LF. UTF-8 handling: see <a href="#codepage">code pages</a>.</td></tr>
+</table>
+<p><code>tvcompat.h</code> (included by <code>tv.h</code>, or via the
+<code>dir.h</code>/<code>dos.h</code>/<code>io.h</code> shims) implements the Borland
+run-time functions that the library and typical TV programs use:</p>
+<table>
+<tr><th>Function</th><th>Implementation</th></tr>
+<tr><td><code>findfirst()</code>, <code>findnext()</code>, <code>struct ffblk</code></td><td><code>opendir</code>/<code>readdir</code>/<code>stat</code>/<code>fnmatch</code>. <code>"*.*"</code> means <code>"*"</code>; <code>.</code> is skipped; dot-files count as hidden (<code>FA_HIDDEN</code>); <code>ff_ftime</code>/<code>ff_fdate</code> are DOS packed values; the search must run until it fails, which closes the directory.</td></tr>
+<tr><td><code>fnsplit()</code>, <code>fnmerge()</code></td><td>Unix paths; the drive is always empty; <code>.profile</code> has no extension.</td></tr>
+<tr><td><code>getdisk()</code>, <code>setdisk()</code>, <code>getcurdir()</code></td><td>Always drive 0; <code>getcurdir()</code> returns the working directory without the leading <code>/</code>.</td></tr>
+<tr><td><code>MAXPATH</code>, <code>MAXDIR</code>, <code>MAXFILE</code>, <code>MAXEXT</code></td><td>512, 512, 256, 256</td></tr>
+<tr><td><code>strupr()</code>, <code>strlwr()</code>, <code>stricmp()</code>, <code>strnicmp()</code></td><td>Via <code>toupper</code>/<code>strcasecmp</code></td></tr>
+<tr><td><code>itoa()</code>, <code>ltoa()</code>, <code>ultoa()</code></td><td>Any radix 2–36</td></tr>
+<tr><td><code>movmem()</code>, <code>setmem()</code></td><td><code>memmove</code>, <code>memset</code></td></tr>
+<tr><td><code>random(n)</code>, <code>randomize()</code></td><td><code>random() % n</code>, <code>srandom(time(0))</code></td></tr>
+<tr><td><code>filelength()</code></td><td><code>fstat</code></td></tr>
+<tr><td><code>struct ftime</code></td><td>Bit fields of a DOS packed date/time</td></tr>
+</table>
+<h2 id="formats">Data and file formats</h2>
+<table>
+<tr><th>Format</th><th>Compatibility with DOS files</th></tr>
+<tr><td>Object streams (<code>fpstream</code> etc.)</td><td>Same format: 16-bit <code>int</code>, 32-bit <code>long</code>, little-endian, same object prefixes and references. Objects of library classes written under DOS can be read.</td></tr>
+<tr><td>Help files (<code>.hlp</code>)</td><td>Identical. <code>tvhc</code> produces from <code>DEMOHELP.TXT</code> a file that is byte-for-byte equal to Borland's <code>DEMOHELP.HLP</code>; old help files open unchanged.</td></tr>
+<tr><td>Resource files</td><td>Same header and index format.</td></tr>
+<tr><td>Raw records you write yourself (<code>writeBytes(&amp;rec, sizeof rec)</code>)</td><td>Not compatible when the record contains <code>int</code> (2 → 4 bytes), <code>long</code> (4 → 8 bytes), pointers or padding. The TVFORMS data files (<code>.tvf</code>) are such records and must be regenerated (<code>bin/genphone</code>, <code>bin/genparts</code>).</td></tr>
+<tr><td>Text files</td><td>Read with either line ending; <code>tvhc</code> also accepts the DOS ^Z end-of-file mark.</td></tr>
+</table>
+<h2 id="migrate">Migrating a program step by step</h2>
+<p>Work through the steps in order; most programs need only the first few. Build
+with <code>-Wall</code> and fix the warnings: GCC finds most of the problems listed
+here.</p>
+<h3>1. Headers and the build</h3>
+<p>Use lower-case header names (Linux file systems are case-sensitive) and forward
+slashes. Keep <code>Uses_</code> + <code>tv.h</code> as before. Old iostream names work
+through <code>include/compat/</code>; new code can use the standard headers.</p>
+<div class="ba"><div><p class="lbl">Borland C++ / DOS</p><pre><code>#include &lt;TV.H&gt;
+#include &lt;Dos.h&gt;
+#include "..\common\util.h"</code></pre></div><div><p class="lbl">Linux port</p><pre><code>#include &lt;tv.h&gt;
+#include &lt;dos.h&gt;        // shim: tvcompat.h
+#include "../common/util.h"</code></pre></div></div>
+<h3>2. Memory-model keywords and pragmas</h3>
+<p>Remove <code>far</code>, <code>near</code>, <code>huge</code>, <code>_FAR</code>,
+<code>_Cdecl</code>, <code>interrupt</code> and the Borland pragmas
+(<code>#pragma option</code>, <code>warn</code>, <code>saveregs</code>,
+<code>hdrstop</code>). <code>tools/convert.py</code> does this automatically for a
+whole tree.</p>
+<div class="ba"><div><p class="lbl">Borland C++ / DOS</p><pre><code>static char far * near buffer;
+void far *operator new( size_t );
+#pragma option -Vo-</code></pre></div><div><p class="lbl">Linux port</p><pre><code>static char *buffer;
+void *operator new( size_t );</code></pre></div></div>
+<h3>3. Pre-standard C++</h3>
+<ul>
+<li>Implicit <code>int</code>: <code>const cmMyCmd = 100;</code> → <code>const int cmMyCmd = 100;</code></li>
+<li>Old <code>for</code> scope: a variable declared in <code>for( int i ...)</code> is not visible after the loop.</li>
+<li><code>friend X;</code> → <code>friend class X;</code></li>
+<li>A <code>case</code> label may not jump over an initialized declaration: put the case body in braces.</li>
+<li>String literals are <code>const char *</code>; parameters that receive them should be <code>const char *</code>.</li>
+<li>An enum does not convert to a pointer: <code>TWindowInit( streamableInit )</code> now has its own constructor; similar code in your classes needs one too.</li>
+<li><code>typedef enum X { ... };</code> without a name → <code>enum X { ... };</code></li>
+</ul>
+<div class="ba"><div><p class="lbl">Borland C++ / DOS</p><pre><code>for( int i = 0; i &lt; n; i++ )
+    if( a[i] == key ) break;
+if( i == n ) notFound();
+
+case evKeyDown:
+    char c = getAltChar( ev.keyDown.keyCode );
+    ...</code></pre></div><div><p class="lbl">Linux port</p><pre><code>int i;
+for( i = 0; i &lt; n; i++ )
+    if( a[i] == key ) break;
+if( i == n ) notFound();
+
+case evKeyDown:
+    {
+    char c = getAltChar( ev.keyDown.keyCode );
+    ...
+    }</code></pre></div></div>
+<h3>4. Old iostreams</h3>
+<ul>
+<li><code>ostrstream os( buf, size ); os &lt;&lt; ... &lt;&lt; ends;</code> keeps working (a fixed-buffer <code>ostrstream</code> is provided in <code>strstrea.h</code>). In new code prefer <code>snprintf</code> or <code>std::ostringstream</code>.</li>
+<li><code>stream.getline( ... ) != 0</code> and similar comparisons with 0 do not compile with standard streams: test <code>!stream.fail()</code> or use the stream in a boolean context.</li>
+<li><code>filebuf::openprot</code>, <code>ios::nocreate</code>, <code>ios::noreplace</code>, <code>rdbuf()-&gt;fd()</code> do not exist. Get a file size with <code>stat()</code> or by seeking to the end.</li>
+</ul>
+<div class="ba"><div><p class="lbl">Borland C++ / DOS</p><pre><code>ifstream f( name );
+long size = filelength( f.rdbuf()-&gt;fd() );
+while( f.getline( line, sizeof line ) != 0 )
+    add( line );</code></pre></div><div><p class="lbl">Linux port</p><pre><code>ifstream f( name );
+f.seekg( 0, ios::end );
+long size = long( f.tellg() );
+f.seekg( 0 );
+while( f.getline( line, sizeof line ) )
+    add( line );</code></pre></div></div>
+<h3>5. Direct hardware access</h3>
+<p>Everything that touched the PC hardware has to go through the library:</p>
+<table>
+<tr><th>DOS code</th><th>Replacement</th></tr>
+<tr><td>Writing to <code>MK_FP( 0xB800, 0 )</code></td><td>Draw in a view with <code>TDrawBuffer</code> and <code>writeLine()</code>/<code>writeBuf()</code>. To show output before returning to the event loop, call <code>TScreen::flushScreen()</code>.</td></tr>
+<tr><td>BIOS keyboard (<code>bioskey()</code>, INT 16h, <code>getch()</code>)</td><td>Handle <code>evKeyDown</code> events, or poll with <code>TEvent ev; ev.getKeyEvent();</code></td></tr>
+<tr><td>Shift state at <code>0040:0017</code></td><td><code>TEventQueue::getShiftState()</code></td></tr>
+<tr><td>BIOS timer at <code>0040:006C</code></td><td><code>time()</code>, <code>clock_gettime()</code>, or do the work in <code>idle()</code></td></tr>
+<tr><td>INT 33h mouse</td><td>Mouse events (<code>evMouseDown</code>, <code>evMouseMove</code>...) and <code>TMouse::getEvent()</code></td></tr>
+<tr><td><code>disable()</code>/<code>enable()</code>, <code>getvect()</code>/<code>setvect()</code></td><td>No equivalent; use signals if needed</td></tr>
+<tr><td>Inline <code>asm</code>, <code>_AX</code> and other register variables</td><td>Rewrite in C++</td></tr>
+</table>
+<div class="ba"><div><p class="lbl">Borland C++ / DOS</p><pre><code>uchar far *shift = (uchar far *)MK_FP( 0x40, 0x17 );
+if( *shift &amp; 0x03 )
+    extendSelection();</code></pre></div><div><p class="lbl">Linux port</p><pre><code>#define Uses_TEventQueue
+#include &lt;tv.h&gt;
+
+if( TEventQueue::getShiftState() &amp; 0x03 )
+    extendSelection();</code></pre></div></div>
+<h3>6. DOS shell and video modes</h3>
+<div class="ba"><div><p class="lbl">Borland C++ / DOS</p><pre><code>void TMyApp::dosShell()
+{
+    suspend();
+    system( "cls" );
+    cout &lt;&lt; "Type EXIT to return...";
+    system( getenv( "COMSPEC" ) );
+    resume();
+    redraw();
+}</code></pre></div><div><p class="lbl">Linux port</p><pre><code>void TMyApp::dosShell()
+{
+    suspend();                      // normal screen back
+    const char *sh = getenv( "SHELL" );
+    cout &lt;&lt; "Type EXIT to return..." &lt;&lt; endl;
+    system( sh &amp;&amp; *sh ? sh : "/bin/sh" );
+    resume();                       // full screen again
+    redraw();
+}</code></pre></div></div>
+<p>Switching between 25 and 43/50 lines (<code>setScreenMode( smFont8x8 )</code>)
+has no effect: the terminal decides the size. Remove the command or replace it with
+a message. Code that assumed exactly 25 rows or 80 columns should use
+<code>TScreen::screenWidth</code>/<code>screenHeight</code> or the desktop's
+<code>getExtent()</code>, and views that must follow the window should get a
+<code>growMode</code>:</p>
+<pre><code>TRect r = getExtent();          // clock in the top right corner
+r.a.x = r.b.x - 9;
+r.b.y = r.a.y + 1;
+clock = new TClockView( r );
+clock-&gt;growMode = gfGrowLoX | gfGrowHiX;    // stays at the right edge
+insert( clock );</code></pre>
+<h3>7. File names and paths</h3>
+<ul>
+<li>Replace <code>\</code> with <code>/</code> and drop drive letters (<code>"C:\\TV\\DATA"</code> in C source → <code>"/home/user/tv/data"</code> or a relative path).</li>
+<li>Names are case-sensitive: <code>"DEMOHELP.HLP"</code> is not <code>"demohelp.hlp"</code>. The port and its demos use lower-case names and wildcards (<code>"*.tvf"</code>).</li>
+<li>Do not upper-case file names (<code>strupr()</code>) before opening them.</li>
+<li>Paths can be long: size buffers with <code>MAXPATH</code> (512), not with the DOS value 80.</li>
+<li>Write text files with <code>'\n'</code>; the C library no longer adds CR.</li>
+</ul>
+<h3>8. Data records of dialogs</h3>
+<p><code>TGroup::getData()</code>/<code>setData()</code> copy the values of the controls
+one after another into a record, using each control's <code>dataSize()</code>. Under
+Borland C++ structures were byte-aligned, so a <code>struct</code> matched the
+controls exactly. GCC aligns fields, and some sizes changed:</p>
+<table>
+<tr><th>Control</th><th>Data</th><th>Size DOS → Linux</th></tr>
+<tr><td><code>TInputLine( r, n )</code></td><td><code>char[n]</code></td><td>n → n</td></tr>
+<tr><td><code>TCheckBoxes</code>, <code>TRadioButtons</code></td><td><code>ushort</code></td><td>2 → 2</td></tr>
+<tr><td><code>TListBox</code></td><td><code>{ TCollection *items; ushort selection; }</code></td><td>6 → 16 (8-byte pointer plus padding; <code>dataSize()</code> is <code>sizeof</code> of that struct)</td></tr>
+<tr><td><code>TMemo</code></td><td><code>ushort length; char text[n]</code></td><td>2 + n → 2 + n</td></tr>
+<tr><td>Your controls storing <code>int</code> / <code>long</code></td><td></td><td>2 → 4 / 4 → 8</td></tr>
+</table>
+<p>The record must have no padding between the fields. Insert the controls (and
+declare the fields) so that each field starts at a multiple of its alignment —
+pointers and <code>long</code> first, then <code>ushort</code>, then
+<code>char</code> arrays — or add explicit filler controls. A list box entry is
+simplest as a nested struct of the same shape as the one the list box uses. Check the
+size against the dialog once; the check catches every mismatch:</p>
+<pre><code>struct TListData { TCollection *items; ushort selection; };   // 16 bytes
+
+struct TOptionsRec                 // controls inserted in this order:
+{
+    TListData list;                // TListBox             offset  0, 16 bytes
+    long      limit;               // custom long control  offset 16,  8 bytes
+    ushort    flags;               // TCheckBoxes          offset 24,  2 bytes
+    ushort    mode;                // TRadioButtons        offset 26,  2 bytes
+    char      name[31];            // TInputLine( r, 31 )  offset 28, 31 bytes
+};                                 // sizeof may add tail padding: compare the offset
+
+assert( offsetof( TOptionsRec, name ) + 31 == dialog-&gt;dataSize() );</code></pre>
+<p>For records made only of <code>char</code> arrays, <code>ushort</code> and
+<code>long</code> fields, <code>#pragma pack( push, 1 )</code> …
+<code>#pragma pack( pop )</code> around the declaration gives the DOS layout without
+reordering. Do not pack a record that contains list box data: the list box always
+copies its full, aligned 16-byte structure.</p>
+<h3>9. 64-bit sizes and pointers</h3>
+<ul>
+<li><code>int</code> is 4 bytes, <code>long</code> and pointers 8 bytes. Code that
+stores a pointer in an <code>int</code>/<code>long</code> must use
+<code>intptr_t</code>; integers passed in <code>message( ..., (void *)value )</code>
+should be cast through <code>intptr_t</code> as well.</li>
+<li>Memory from <code>new T[n]</code> must be released with <code>delete[]</code>;
+<code>delete</code> of a <code>void *</code> is undefined.</li>
+<li>Do not rely on 64 KB wrap-around or on <code>sizeof(int) == 2</code> when reading
+binary files: use <code>readWord()</code>, <code>int16_t</code>, <code>int32_t</code>.</li>
+<li>Returning the address of a local array (it happened to work in DOS) breaks with an
+optimizing GCC; make the buffer <code>static</code> or pass it in.</li>
+</ul>
+<div class="ba"><div><p class="lbl">Borland C++ / DOS</p><pre><code>message( owner, evBroadcast, cmColorSet, (void *)color );
+...
+delete (char *)items;          // allocated with new char[n]</code></pre></div><div><p class="lbl">Linux port</p><pre><code>message( owner, evBroadcast, cmColorSet, (void *)(intptr_t)color );
+...
+delete[] (char *)items;</code></pre></div></div>
+<h3>10. Casts between classes with virtual bases</h3>
+<p>The collection classes use virtual inheritance
+(<code>TSortedCollection : TNSSortedCollection, TCollection</code> with a virtual
+<code>TNSCollection</code> base). A C-style cast between such classes when one of them
+is only forward-declared silently becomes a <code>reinterpret_cast</code> and yields a
+wrong pointer. Make sure the full class is visible (define its <code>Uses_</code> macro)
+and prefer <code>static_cast</code>, which refuses to compile in that case.</p>
+<div class="ba"><div><p class="lbl">Borland C++ / DOS</p><pre><code>class TSortedCollection;      // only declared
+TSortedCollection *c =
+    (TSortedCollection *)listBox-&gt;list();</code></pre></div><div><p class="lbl">Linux port</p><pre><code>#define Uses_TSortedCollection
+#include &lt;tv.h&gt;
+TSortedCollection *c =
+    static_cast&lt;TSortedCollection *&gt;( listBox-&gt;list() );</code></pre></div></div>
+<h3>11. Streamable classes</h3>
+<p>Nothing changes in the pattern (<code>name</code>, <code>build()</code>,
+<code>read()</code>, <code>write()</code>, a <code>TStreamableClass</code> object).
+Remember that <code>int</code> written with <code>&lt;&lt;</code> is stored in 16 bits
+and <code>long</code> in 32 bits, exactly as in DOS; values outside these ranges are
+truncated. Link with <code>--whole-archive</code> or use <code>__link()</code> for
+classes in your own static libraries.</p>
+<h3>12. Text and characters</h3>
+<ul>
+<li>Keep box-drawing and other code-page characters as escapes in literals
+(<code>"\xDA\xC4\xBF"</code>).</li>
+<li><code>char</code> is signed: compare bytes as <code>(uchar)c == 0xF0</code>, not
+<code>c == '\xF0'</code> after a conversion to <code>unsigned</code>.</li>
+<li>Choose <code>TVCODEPAGE</code> to match the language of your data.</li>
+</ul>
+<h3>13. Checking the result</h3>
+<pre><code>make ASAN=1                         # sanitizers catch the 64-bit problems
+bin/keytest                         # what does this terminal send?
+sh tools/tmuxrun.sh bin/myapp 100 30 keys:F10 keys:Down shot resize:60x20 shot keys:M-x</code></pre>
+<h2 id="fixes">Bugs of the original fixed in the port</h2>
+<p>These defects were harmless or hidden under DOS and became crashes or wrong
+results with GCC on 64-bit Linux. They are fixed in the library; your own code may
+contain similar ones.</p>
+<table>
+<tr><th>Where</th><th>Problem</th></tr>
+<tr><td><code>TCollection::read()</code></td><td>A local variable <code>limit</code> hid the member, so <code>setLimit()</code> copied items from an uninitialized pointer. Reading any collection from a stream could crash.</td></tr>
+<tr><td><code>TSortedListBox::list()</code>, <code>TFileList::list()</code>, <code>TDirListBox::list()</code></td><td>Casts through a forward-declared class became <code>reinterpret_cast</code>s and returned wrong pointers.</td></tr>
+<tr><td><code>messageBox()</code>, <code>messageBoxRect()</code> (formatting versions)</td><td><code>va_start</code> was given the wrong argument.</td></tr>
+<tr><td><code>THelpTopic::getLine()</code>, <code>wrapText()</code></td><td>Returned the address of a local buffer.</td></tr>
+<tr><td><code>TParamText::setData()</code></td><td>Stored the address of its parameter instead of the record.</td></tr>
+<tr><td><code>TFileInfoPane::draw()</code></td><td>Changed the time stored in the file record while drawing it (AM/PM lost after a redraw).</td></tr>
+<tr><td><code>TDrawBuffer::moveBuf()</code></td><td>With <code>attr == 0</code>, wrote without loading the character.</td></tr>
+<tr><td><code>TResourceFile</code></td><td><code>modified</code> was not initialized.</td></tr>
+<tr><td><code>new.cpp</code></td><td>Array <code>new[]</code>/<code>delete[]</code> did not use the library allocator.</td></tr>
+<tr><td><code>getAltCode()</code></td><td>The Alt-Space test never matched with a signed <code>char</code>.</td></tr>
+<tr><td>TVHC</td><td><code>getWord()</code> and <code>replaceExt()</code> returned local buffers.</td></tr>
+<tr><td>TVG17B demo</td><td><code>phone[14]</code> was one byte too short for its data.</td></tr>
+</table>
+<h2 id="limits">Known limitations</h2>
+<ul>
+<li>The editor handles files up to 64 KB, as in the original (positions are
+<code>ushort</code>).</li>
+<li>No mouse wheel; no BGI graphics (the TVBGI demo and TVGUID20/21 are not
+ported).</li>
+<li>A character takes exactly one cell; characters outside the active code page cannot
+be shown or typed.</li>
+<li>Shift, Ctrl and Alt pressed alone are not visible to the program.</li>
+<li>Some key combinations are taken by the terminal or the ssh client and never reach
+the program.</li>
+<li>Raw data files of TVFORMS and similar programs from DOS are not readable (record
+layout changed); regenerate them.</li>
+</ul>
+<h2 id="tools">Tools</h2>
+<table>
+<tr><th>Tool</th><th>Purpose</th></tr>
+<tr><td><code>bin/keytest</code></td><td>Shows the key codes, shift state and mouse reports decoded from the terminal. Ctrl-C (or q twice) quits.</td></tr>
+<tr><td><code>bin/tvhc</code></td><td>Help compiler: <code>tvhc file.txt [file.hlp [file.h]]</code>. Accepts DOS help sources; the output format is the DOS one.</td></tr>
+<tr><td><code>tools/tmuxrun.sh</code></td><td>Runs a program in a detached tmux session and sends keys, text, mouse clicks and resizes; prints screen captures. Useful for automated tests.</td></tr>
+<tr><td><code>tools/smoketest.sh</code></td><td>Starts every program, checks that it draws and exits on Alt-X.</td></tr>
+<tr><td><code>tools/convert.py</code></td><td>The mechanical converter used for the port (lower-case names, LF, memory-model keywords, implicit <code>int</code>, escaped literals). Can be run on your own DOS sources as a first step.</td></tr>
+<tr><td><code>tools/mkdoc/mkdoc.py</code></td><td>Generates this documentation.</td></tr>
+</table>
+</main>
+</div>
+</body>
+</html>
