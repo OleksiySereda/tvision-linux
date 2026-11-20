@@ -65,9 +65,12 @@ cd bin
 ## Add-ons
 
 [`addons/`](addons/README.md) holds new classes built on the library, in a
-library of their own (`lib/libtvaddons.a`, header `tvaddons.h`). The first
-one is `TYamlEditor`, a `TFileEditor` with YAML syntax colouring, and
-`TYamlEditWindow`, a `TEditWindow` that uses it.
+library of their own (`lib/libtvaddons.a`, header `tvaddons.h`):
+
+- `TAdvancedEditor`: a `TFileEditor` where Ctrl+C, Ctrl+X, Ctrl+V and Ctrl+A
+  copy, cut, paste and select all;
+- `TYamlEditor`: a `TAdvancedEditor` with YAML syntax colouring, and
+  `TYamlEditWindow`, a `TEditWindow` that uses it.
 
 ### Environment variables
 

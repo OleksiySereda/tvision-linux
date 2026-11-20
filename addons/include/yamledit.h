@@ -4,11 +4,12 @@
 /*                                                                         */
 /*   defines the classes TYamlEditor and TYamlEditWindow                   */
 /*                                                                         */
-/*   TYamlEditor is a TFileEditor that colours YAML: keys, quoted strings, */
-/*   numbers and true/false/null, comments, punctuation (- : [ ] { } , |   */
-/*   >), anchors, aliases and tags, document markers, and the text of     */
-/*   block scalars (key: | ...).  The text, editing, files and streaming   */
-/*   are those of TFileEditor.                                             */
+/*   TYamlEditor is a TAdvancedEditor that colours YAML: keys, quoted      */
+/*   strings, numbers and true/false/null, comments, punctuation (- : [ ]  */
+/*   { } , | >), anchors, aliases and tags, document markers, and the     */
+/*   text of block scalars (key: | ...).  The text, editing, files and     */
+/*   streaming are those of TFileEditor, the Ctrl+C/X/V/A keys those of    */
+/*   TAdvancedEditor (advedit.h).                                          */
 /*                                                                         */
 /*   TYamlEditWindow is a TEditWindow whose editor is a TYamlEditor.       */
 /*                                                                         */
@@ -53,7 +54,7 @@ class TRect;
 class TScrollBar;
 class TIndicator;
 
-class TYamlEditor : public TFileEditor
+class TYamlEditor : public TAdvancedEditor
 {
 
 public:

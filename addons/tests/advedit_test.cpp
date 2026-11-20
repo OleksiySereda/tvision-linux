@@ -1,0 +1,106 @@
+/*------------------------------------------------------------*/
+/*   Tests of the TAdvancedEditor keys.  make check-addons    */
+/*------------------------------------------------------------*/
+
+#define Uses_TAdvancedEditor
+#define Uses_TEditor
+#define Uses_TEvent
+#define Uses_TKeys
+#define Uses_TRect
+#include <tvaddons.h>
+
+#include <stdio.h>
+#include <string.h>
+#include <string>
+
+static int failures = 0, checks = 0;
+
+static void check( bool ok, const char *what )
+{
+    checks++;
+    if( !ok )
+        {
+        failures++;
+        printf( "failed: %s\n", what );
+        }
+}
+
+// what the keyboard sends: the scan code of the letter and the control
+// character (kbCtrlC etc. have only the character)
+const ushort keyCtrlA = 0x1E01, keyCtrlC = 0x2E03, keyCtrlK = 0x250B,
+             keyCtrlV = 0x2F16, keyCtrlX = 0x2D18;
+
+static void key( TEditor *ed, ushort keyCode )
+{
+    TEvent e;
+    memset( &e, 0, sizeof( e ) );
+    e.what = evKeyDown;
+    e.keyDown.keyCode = keyCode;
+    ed->handleEvent( e );
+}
+
+static std::string text( TEditor *ed )
+{
+    std::string s;
+    for( ushort p = 0; p < ed->bufLen; p++ )
+        s += ed->bufChar( p );
+    return s;
+}
+
+static std::string selection( TEditor *ed )
+{
+    std::string s;
+    for( ushort p = ed->selStart; p < ed->selEnd; p++ )
+        s += ed->bufChar( p );
+    return s;
+}
+
+int main()
+{
+    TRect r( 0, 0, 80, 25 );
+    TEditor *clip = new TEditor( r, 0, 0, 0, 1000 );
+    TEditor::clipboard = clip;
+
+    TAdvancedEditor *ed = new TAdvancedEditor( r, 0, 0, 0, 0 );
+    const char *t = "alpha\r\nbeta\r\n";
+    ed->insertText( t, ushort( strlen( t ) ), False );
+
+    key( ed, keyCtrlA );
+    check( ed->selStart == 0 && ed->selEnd == ed->bufLen, "Ctrl+A selects all" );
+
+    key( ed, keyCtrlC );
+    check( selection( clip ) == t, "Ctrl+C copies the selection" );
+    check( text( ed ) == t, "Ctrl+C keeps the text" );
+
+    ed->setSelect( 0, 5, False );               // "alpha"
+    key( ed, keyCtrlX );
+    check( text( ed ) == "\r\nbeta\r\n", "Ctrl+X removes the selection" );
+    check( selection( clip ) == "alpha", "Ctrl+X puts it on the clipboard" );
+
+    ed->setSelect( ed->bufLen, ed->bufLen, False );
+    key( ed, keyCtrlV );
+    check( text( ed ) == "\r\nbeta\r\nalpha", "Ctrl+V pastes at the cursor" );
+
+    // after the Ctrl+K prefix the WordStar block keys are used: ^K ^C = paste
+    ed->setSelect( 0, 0, False );
+    key( ed, keyCtrlK );
+    key( ed, keyCtrlC );
+    check( text( ed ) == "alpha\r\nbeta\r\nalpha", "Ctrl+K Ctrl+C pastes (WordStar)" );
+
+    // clipboardKeys = False: Ctrl+A is word left again, nothing is selected
+    ed->clipboardKeys = False;
+    ed->setSelect( 3, 3, False );
+    key( ed, keyCtrlA );
+    check( ed->curPtr == 0 && ed->selStart == ed->selEnd, "Ctrl+A is word left when off" );
+    ushort len = ed->bufLen;
+    ed->setSelect( 0, 5, False );
+    key( ed, keyCtrlC );
+    check( ed->bufLen == len, "Ctrl+C does not copy or cut when off" );
+
+    TEditor::clipboard = 0;
+    TObject::destroy( ed );
+    TObject::destroy( clip );
+
+    printf( "%d checks, %d failed\n", checks, failures );
+    return failures == 0 ? 0 : 1;
+}

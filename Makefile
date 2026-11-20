@@ -81,8 +81,13 @@ bin/yamlsyntax-test: obj/addons/tests/yamlsyntax_test.o $(ADDLIB) $(LIB)
 	@mkdir -p bin
 	$(CXX) $(LDFLAGS) -o $@ $< $(LINKADD)
 
-check-addons: bin/yamlsyntax-test
+bin/advedit-test: obj/addons/tests/advedit_test.o $(ADDLIB) $(LIB)
+	@mkdir -p bin
+	$(CXX) $(LDFLAGS) -o $@ $< $(LINKADD)
+
+check-addons: bin/yamlsyntax-test bin/advedit-test
 	bin/yamlsyntax-test
+	bin/advedit-test
 
 obj/%.o: %.cpp
 	@mkdir -p $(dir $@)

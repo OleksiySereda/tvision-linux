@@ -35,13 +35,13 @@ TYamlEditor::TYamlEditor( const TRect& bounds,
                           TScrollBar *aVScrollBar,
                           TIndicator *aIndicator,
                           const char *aFileName ) :
-    TFileEditor( bounds, aHScrollBar, aVScrollBar, aIndicator, aFileName ),
+    TAdvancedEditor( bounds, aHScrollBar, aVScrollBar, aIndicator, aFileName ),
     highlight( True )
 {
 }
 
 TYamlEditor::TYamlEditor( StreamableInit ) :
-    TFileEditor( streamableInit ),
+    TAdvancedEditor( streamableInit ),
     highlight( True )
 {
 }

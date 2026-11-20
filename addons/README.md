@@ -30,11 +30,41 @@ To add a class: put its declaration into a header in `include/` under
 `Uses_TName` into `tvaddons.h`, and the code into `source/`. The Makefile picks
 up every `source/*.cpp` by itself.
 
+## TAdvancedEditor
+
+`TAdvancedEditor` is a `TFileEditor` with the clipboard keys of today's
+editors. `TEditor` itself is not changed, so `TEditWindow`, `TMemo` and the
+DOS programs keep the WordStar keys.
+
+| Key | TAdvancedEditor | TEditor (WordStar), still on |
+|---|---|---|
+| Ctrl+C | copy | page down: PgDn |
+| Ctrl+X | cut | line down: Down |
+| Ctrl+V | paste | insert mode: Ins |
+| Ctrl+A | select all (`cmSelectAll`) | word left: Ctrl+Left |
+
+```cpp
+#define Uses_TAdvancedEditor
+#include <tvaddons.h>
+
+TAdvancedEditor *ed = new TAdvancedEditor( r, hScrollBar, vScrollBar, indicator, "notes.txt" );
+ed->clipboardKeys = False;  // the WordStar keys again
+```
+
+- Selecting with Shift is `TEditor`'s own and works with every cursor key:
+  Shift+arrows, Shift+Home/End, Shift+PgUp/PgDn, Shift+Ctrl+Left/Right.
+- Ctrl+Ins, Shift+Ins and Shift+Del still copy, paste and cut, and after
+  Ctrl+K or Ctrl+Q the second key is WordStar's (Ctrl+K Ctrl+C pastes).
+- The clipboard is `TEditor::clipboard`, as for every editor: the program
+  has to create it (as TVEDIT does), or Ctrl+C and Ctrl+V do nothing.
+- `cmSelectAll` (530) is an editor command like `cmCharLeft` (500–523): it
+  cannot be disabled and can be put into a menu as it is.
+
 ## TYamlEditor, TYamlEditWindow
 
-`TYamlEditor` is a `TFileEditor` that colours YAML. Editing, files, the
-clipboard, find and replace, undo and streaming all come from `TFileEditor`;
-only the drawing is new. `TYamlEditWindow` is a `TEditWindow` whose editor is a
+`TYamlEditor` is a `TAdvancedEditor` that colours YAML. Editing, files, the
+clipboard, find and replace, undo and streaming all come from `TFileEditor`,
+the Ctrl+C/X/V/A keys from `TAdvancedEditor`; only the drawing is new. `TYamlEditWindow` is a `TEditWindow` whose editor is a
 `TYamlEditor`, so it can be used wherever a `TEditWindow` is used.
 
 ```cpp

@@ -19,6 +19,10 @@
 #endif
 
 #if defined( Uses_TYamlEditor )
+#define Uses_TAdvancedEditor
+#endif
+
+#if defined( Uses_TAdvancedEditor )
 #define Uses_TFileEditor
 #define Uses_TScrollBar
 #define Uses_TIndicator
@@ -26,5 +30,7 @@
 
 #include <tv.h>
 
-// the class declarations are selected inside by the Uses_ macros
+// the class declarations are selected inside by the Uses_ macros;
+// a base class comes before the classes derived from it
+#include <advedit.h>
 #include <yamledit.h>
