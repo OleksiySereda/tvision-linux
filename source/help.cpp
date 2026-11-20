@@ -94,7 +94,7 @@ void THelpViewer::draw()
 {
     TDrawBuffer b;
     char line[256];
-    char buffer[256];
+    char buffer[maxViewWidth+1];        // Linux port: views may be wider than 255
     char *bufPtr;
     int i, j, l;
     int keyCount;

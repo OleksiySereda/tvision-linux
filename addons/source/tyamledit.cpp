@@ -132,7 +132,7 @@ void TYamlEditor::drawLines( int y, int count, ushort linePtr )
 
     while( count-- > 0 )
         {
-        ushort b[maxLineLength];
+        ushort b[maxLineLength + maxViewWidth];     // as in TEditor::drawLines
         int width = delta.x + size.x;
         formatLine( b, linePtr, width, color );
 

@@ -66,9 +66,10 @@ void TFileViewer::draw()
                 s[0] = EOS;
             else
 		{
-		strncpy( s, p+delta.x, size.x );
-		if( strlen( p + delta.x ) > size.x )
-                    s[size.x] = EOS;
+		// Linux port: the view may be wider than s
+		int n = min( int( size.x ), maxLineLength );
+		strncpy( s, p+delta.x, n );
+		s[n] = EOS;
                 }
             b.moveStr( 0, s, c );
             }

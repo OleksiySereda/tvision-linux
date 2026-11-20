@@ -129,9 +129,10 @@ void TListViewer::draw()
             b.moveChar( curCol, ' ', color, colWidth );
             if( item < range )
                 {
-                char text[256];
-                getText( text, item, colWidth + indent );
-                char buf[256];
+                // Linux port: columns may be wider than 255
+                char text[2*maxViewWidth+1];
+                getText( text, item, min( colWidth + indent, 2*maxViewWidth ) );
+                char buf[maxViewWidth+1];
                 memmove( buf, text+indent, colWidth );
                 buf[colWidth] = EOS;
                 b.moveStr( curCol+1, buf, color );

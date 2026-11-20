@@ -90,7 +90,7 @@ void TTerminal::draw()
 {
     short  i;
     ushort begLine, endLine;
-    char s[256];
+    char s[2*maxViewWidth];             // Linux port: was 256, too short for wide views
     ushort bottomLine;
 
     bottomLine = size.y + delta.y;
@@ -116,16 +116,18 @@ void TTerminal::draw()
         begLine = prevLines(endLine, 1);
         if (endLine >= begLine)
             {
-            int T = int( endLine - begLine );
+            // Linux port: lines longer than s are cut
+            int T = min( int( endLine - begLine ), int( sizeof( s ) - 1 ) );
             memcpy( s, &buffer[begLine], T );
             s[T] = EOS;
             }
         else
             {
-            int T = int( bufSize - begLine);
+            int T = min( int( bufSize - begLine ), int( sizeof( s ) - 1 ) );
             memcpy( s, &buffer[begLine], T );
-            memcpy( s+T, buffer, endLine );
-            s[T+endLine] = EOS;
+            int E = min( int( endLine ), int( sizeof( s ) - 1 - T ) );
+            memcpy( s+T, buffer, E );
+            s[T+E] = EOS;
             }
         if( delta.x >= strlen(s) )
             *s = EOS;

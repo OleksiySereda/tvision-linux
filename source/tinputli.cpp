@@ -92,7 +92,7 @@ void TInputLine::draw()
     uchar color = (state & sfFocused) ? getColor( 2 ) : getColor( 1 );
 
     b.moveChar( 0, ' ', color, size.x );
-    char buf[256];
+    char buf[maxViewWidth+1];           // Linux port: views may be wider than 255
     strncpy( buf, data+firstPos, size.x - 2 );
     buf[size.x - 2 ] = EOS;
     b.moveStr( 1, buf, color );
