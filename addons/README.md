@@ -42,6 +42,7 @@ DOS programs keep the WordStar keys.
 | Ctrl+X | cut | line down: Down |
 | Ctrl+V | paste | insert mode: Ins |
 | Ctrl+A | select all (`cmSelectAll`) | word left: Ctrl+Left |
+| Ctrl+B | start / end selecting without Shift (`cmToggleSelect`) | (free in `TEditor`) |
 
 ```cpp
 #define Uses_TAdvancedEditor
@@ -53,12 +54,35 @@ ed->clipboardKeys = False;  // the WordStar keys again
 
 - Selecting with Shift is `TEditor`'s own and works with every cursor key:
   Shift+arrows, Shift+Home/End, Shift+PgUp/PgDn, Shift+Ctrl+Left/Right.
+  It needs a terminal that sends Shift with these keys; `bin/keytest` shows
+  whether yours does (`shift 0x00` for Shift+Left means it does not, as
+  with PuTTY's defaults).
+
+### Selecting without Shift: Ctrl+B
+
+For terminals that do not send Shift with the cursor keys, Ctrl+B selects
+the way F3 does in Midnight Commander:
+
+1. **Ctrl+B** starts selecting at the cursor.
+2. Every cursor key (arrows, Home/End, PgUp/PgDn, Ctrl+arrows, Ctrl+PgUp/PgDn)
+   extends the selection, as if Shift were held.
+3. **Ctrl+C** copies or **Ctrl+X** cuts, and that ends selecting. Typing,
+   pasting and Del end it too; a second **Ctrl+B** ends it and keeps the
+   selection until the cursor moves.
+
+While selecting is on, a `TBlockIndicator` shows **B** in the window frame,
+next to the line:column position (`TYamlEditWindow` has one; in a window of
+your own, pass a `TBlockIndicator` to the editor instead of a `TIndicator`).
+Ctrl+B is a free key in `TEditor`, so it works also with
+`clipboardKeys = False`. The same mode exists in every TV editor as the
+WordStar keys **Ctrl+K B** (start) and **Ctrl+K H** (end and hide).
 - Ctrl+Ins, Shift+Ins and Shift+Del still copy, paste and cut, and after
   Ctrl+K or Ctrl+Q the second key is WordStar's (Ctrl+K Ctrl+C pastes).
 - The clipboard is `TEditor::clipboard`, as for every editor: the program
   has to create it (as TVEDIT does), or Ctrl+C and Ctrl+V do nothing.
-- `cmSelectAll` (530) is an editor command like `cmCharLeft` (500–523): it
-  cannot be disabled and can be put into a menu as it is.
+- `cmSelectAll` (530) and `cmToggleSelect` (531) are editor commands like
+  `cmCharLeft` (500–523): they cannot be disabled and can be put into a
+  menu as they are.
 - The mouse wheel scrolls the text under the mouse by `wheelLines` lines
   (3); Shift+wheel and the sideways wheel scroll horizontally. The cursor
   and the selection stay where they are. `wheel()` is virtual and can be

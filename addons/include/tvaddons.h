@@ -16,6 +16,7 @@
 #if defined( Uses_TYamlEditWindow )
 #define Uses_TYamlEditor
 #define Uses_TEditWindow
+#define Uses_TBlockIndicator
 #endif
 
 #if defined( Uses_TYamlEditor )
@@ -25,6 +26,10 @@
 #if defined( Uses_TAdvancedEditor )
 #define Uses_TFileEditor
 #define Uses_TScrollBar
+#define Uses_TIndicator
+#endif
+
+#if defined( Uses_TBlockIndicator )
 #define Uses_TIndicator
 #endif
 

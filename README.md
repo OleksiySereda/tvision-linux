@@ -68,7 +68,8 @@ cd bin
 library of their own (`lib/libtvaddons.a`, header `tvaddons.h`):
 
 - `TAdvancedEditor`: a `TFileEditor` where Ctrl+C, Ctrl+X, Ctrl+V and Ctrl+A
-  copy, cut, paste and select all;
+  copy, cut, paste and select all, Ctrl+B selects with the cursor keys
+  without Shift (as F3 in Midnight Commander), and the mouse wheel scrolls;
 - `TYamlEditor`: a `TAdvancedEditor` with YAML syntax colouring, and
   `TYamlEditWindow`, a `TEditWindow` that uses it.
 
@@ -88,7 +89,7 @@ code-page byte. Characters missing from the code page are ignored.
 - **Size:** taken from `TIOCGWINSZ`; if unavailable, from `$COLUMNS`/`$LINES`; otherwise 80×25. After `SIGWINCH` the desktop, menu bar, status line and windows (`gfGrowRel`) are recalculated. Dialogs without `growMode` keep their size and are only clipped.
 - **Mode:** raw, alternate screen, auto-wrap off. The previous terminal state is restored on exit, on a crash (`SIGSEGV` etc.), and on `SIGTERM` and `SIGHUP`. Ctrl-C, Ctrl-S, Ctrl-Q and Ctrl-Z reach the program as ordinary keys, as in the DOS editor.
 - **Keys:** xterm, rxvt and Linux console escape sequences are translated to BIOS codes from `tkeys.h`: F1–F12, arrows, Home/End/PgUp/PgDn/Ins/Del with Shift/Ctrl/Alt, Shift-Tab. Alt+letter arrives as `ESC`+letter. With a Cyrillic keyboard layout Alt+«а» works as Alt-F, because the key's ЙЦУКЕН position is used. A lone Esc is recognised after 40 ms.
-- **Shift state** (Shift+arrow selection in the editor, `dragGrow`) comes from the modifiers of the last key: `TEventQueue::getShiftState()`.
+- **Shift state** (Shift+arrow selection in the editor, `dragGrow`) comes from the modifiers of the last key: `TEventQueue::getShiftState()`. Some terminals (PuTTY with its defaults, for one) send Shift+arrows as plain arrows; then select with Ctrl+K B in any editor, or Ctrl+B in `TAdvancedEditor` (see [`addons/`](addons/README.md)).
 - **Mouse:** the xterm SGR protocol (1006) with button and drag tracking (1002). Double clicks and auto-repeat work. The wheel gives `evMouseWheel` events (see below); TV 1.0 had no wheel, so its own views ignore them.
 - **Output:** compared with the previous frame, so only changed cells are sent. When nothing changes the program writes nothing, so there is no ssh traffic.
 - **Diagnostics:** `bin/keytest` shows which key codes and mouse events your terminal sends.

@@ -2,7 +2,7 @@
 /*                                                                         */
 /*   ADVEDIT.H                                                             */
 /*                                                                         */
-/*   defines the class TAdvancedEditor                                     */
+/*   defines the classes TAdvancedEditor and TBlockIndicator               */
 /*                                                                         */
 /*   TAdvancedEditor is a TFileEditor with the clipboard keys of today's   */
 /*   editors:                                                              */
@@ -16,21 +16,77 @@
 /*   work as before.  Selecting with Shift and the cursor keys (arrows,    */
 /*   Home/End, PgUp/PgDn, Ctrl+arrows) is TEditor's own.                   */
 /*                                                                         */
+/*   Ctrl+B starts and ends selecting with the cursor keys alone, as F3    */
+/*   does in Midnight Commander; for terminals that do not send Shift      */
+/*   with the cursor keys.                                                 */
+/*                                                                         */
 /*   The mouse wheel scrolls the text (evMouseWheel, Linux port).          */
 /*                                                                         */
-/*   Include through tvaddons.h with Uses_TAdvancedEditor.                 */
+/*   TBlockIndicator is a TIndicator that shows "B" while Ctrl+B           */
+/*   selecting is on.                                                      */
+/*                                                                         */
+/*   Include through tvaddons.h with Uses_TAdvancedEditor or               */
+/*   Uses_TBlockIndicator.                                                 */
 /*                                                                         */
 /* ------------------------------------------------------------------------*/
 
 #if !defined( __ADVEDIT_COMMAND_CODES )
 #define __ADVEDIT_COMMAND_CODES
 
-// selects the whole text; like the other editor commands (500-523) it
-// cannot be disabled, so it may be put into menus as it is
+// like the other editor commands (500-523) these cannot be disabled, so
+// they may be put into menus as they are
 const int
-  cmSelectAll   = 530;
+  cmSelectAll    = 530,     // select the whole text
+  cmToggleSelect = 531;     // Ctrl+B: start / end selecting
 
 #endif  // __ADVEDIT_COMMAND_CODES
+
+
+#if defined( Uses_TBlockIndicator ) && !defined( __TBlockIndicator )
+#define __TBlockIndicator
+
+class TRect;
+
+class TBlockIndicator : public TIndicator
+{
+
+public:
+
+    TBlockIndicator( const TRect& );
+
+    virtual void draw();
+
+    // shows or hides the "B"
+    void setBlock( Boolean on );
+    Boolean block;
+
+private:
+
+    virtual const char *streamableName() const
+        { return name; }
+
+protected:
+
+    TBlockIndicator( StreamableInit );
+
+public:
+
+    static const char * const name;
+    static TStreamable *build();
+
+};
+
+inline ipstream& operator >> ( ipstream& is, TBlockIndicator& cl )
+    { return is >> (TStreamable&)cl; }
+inline ipstream& operator >> ( ipstream& is, TBlockIndicator*& cl )
+    { return is >> (void *&)cl; }
+
+inline opstream& operator << ( opstream& os, TBlockIndicator& cl )
+    { return os << (TStreamable&)cl; }
+inline opstream& operator << ( opstream& os, TBlockIndicator* cl )
+    { return os << (TStreamable *)cl; }
+
+#endif  // Uses_TBlockIndicator
 
 
 #if defined( Uses_TAdvancedEditor ) && !defined( __TAdvancedEditor )
@@ -53,6 +109,11 @@ public:
 
     void selectAll();
 
+    // Ctrl+B: starts selecting (the cursor keys then extend the
+    // selection, as with Shift) or ends it, keeping the selection.
+    // Copying, cutting, typing and pasting end it too.
+    void toggleSelect();
+
     // False gives Ctrl+C, X, V and A back to the WordStar commands
     Boolean clipboardKeys;
 
@@ -63,6 +124,9 @@ public:
     int wheelLines;
 
 private:
+
+    // tells a TBlockIndicator whether selecting is on
+    void showSelecting();
 
     virtual const char *streamableName() const
         { return name; }

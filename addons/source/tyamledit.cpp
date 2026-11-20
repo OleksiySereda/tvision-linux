@@ -14,6 +14,7 @@
 
 #define Uses_TYamlEditor
 #define Uses_TYamlEditWindow
+#define Uses_TBlockIndicator
 #define Uses_TProgram
 #define Uses_TApplication
 #define Uses_TStreamableClass
@@ -178,7 +179,8 @@ TStreamableClass RYamlEditor( TYamlEditor::name,
 
 
 // The window is built by TEditWindow with an empty TFileEditor, which
-// is then replaced by a TYamlEditor on the same scroll bars and indicator.
+// is then replaced by a TYamlEditor on the same scroll bars; the
+// TIndicator is replaced by a TBlockIndicator in the same place.
 TYamlEditWindow::TYamlEditWindow( const TRect& bounds,
                                   const char *fileName,
                                   int aNumber ) :
@@ -189,9 +191,15 @@ TYamlEditWindow::TYamlEditWindow( const TRect& bounds,
     TRect r = plain->getBounds();
     TScrollBar *h = plain->hScrollBar;
     TScrollBar *v = plain->vScrollBar;
-    TIndicator *ind = plain->indicator;
+    TIndicator *plainInd = plain->indicator;
     remove( plain );
     destroy( plain );
+
+    // the indicator that shows Ctrl+B selecting
+    TIndicator *ind = new TBlockIndicator( plainInd->getBounds() );
+    remove( plainInd );
+    destroy( plainInd );
+    insert( ind );
 
     editor = new TYamlEditor( r, h, v, ind, fileName );
     insert( editor );

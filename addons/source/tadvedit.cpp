@@ -2,8 +2,9 @@
 /* filename -       tadvedit.cpp                              */
 /*                                                            */
 /* function(s)                                                */
-/*                  TAdvancedEditor member functions, its     */
-/*                  stream registration                       */
+/*                  TAdvancedEditor and TBlockIndicator       */
+/*                  member functions, their stream            */
+/*                  registration                              */
 /*                                                            */
 /*   handleEvent() turns Ctrl+C, X, V and A into cmCopy,      */
 /*   cmCut, cmPaste and cmSelectAll before TEditor sees the   */
@@ -12,6 +13,7 @@
 /*------------------------------------------------------------*/
 
 #define Uses_TAdvancedEditor
+#define Uses_TBlockIndicator
 #define Uses_TEvent
 #define Uses_TKeys
 #define Uses_TEventQueue
@@ -69,21 +71,42 @@ void TAdvancedEditor::selectAll()
     unlock();
 }
 
+void TAdvancedEditor::toggleSelect()
+{
+    if( selecting == True )
+        selecting = False;
+    else
+        startSelect();
+    showSelecting();
+}
+
+void TAdvancedEditor::showSelecting()
+{
+    TBlockIndicator *b = dynamic_cast<TBlockIndicator *>( indicator );
+    if( b != 0 )
+        b->setBlock( selecting );
+}
+
 void TAdvancedEditor::handleEvent( TEvent& event )
 {
     // keyState != 0: the second key after Ctrl+K or Ctrl+Q
-    if( event.what == evKeyDown && clipboardKeys == True && keyState == 0 )
+    if( event.what == evKeyDown && keyState == 0 )
         {
         // by the character only, as TEditor's key map does: the keyboard
-        // gives Ctrl+C as 0x2E03, kbCtrlC is 0x0003
+        // gives Ctrl+C as 0x2E03, kbCtrlC is 0x0003.  Ctrl+B is free in
+        // TEditor, so it does not depend on clipboardKeys.
         ushort command = 0;
-        switch( event.keyDown.charScan.charCode )
-            {
-            case kbCtrlC: command = cmCopy;      break;
-            case kbCtrlX: command = cmCut;       break;
-            case kbCtrlV: command = cmPaste;     break;
-            case kbCtrlA: command = cmSelectAll; break;
-            }
+        uchar c = event.keyDown.charScan.charCode;
+        if( c == kbCtrlB )
+            command = cmToggleSelect;
+        else if( clipboardKeys == True )
+            switch( c )
+                {
+                case kbCtrlC: command = cmCopy;      break;
+                case kbCtrlX: command = cmCut;       break;
+                case kbCtrlV: command = cmPaste;     break;
+                case kbCtrlA: command = cmSelectAll; break;
+                }
         if( command != 0 )
             {
             event.what = evCommand;
@@ -99,15 +122,69 @@ void TAdvancedEditor::handleEvent( TEvent& event )
         return;
         }
 
-    if( event.what == evCommand && event.message.command == cmSelectAll )
-        {
-        selectAll();
-        clearEvent( event );
-        return;
-        }
+    if( event.what == evCommand )
+        switch( event.message.command )
+            {
+            case cmSelectAll:
+                selectAll();
+                clearEvent( event );
+                return;
+            case cmToggleSelect:
+                toggleSelect();
+                clearEvent( event );
+                return;
+            case cmCopy:
+                selecting = False;      // cut and paste end it themselves
+                break;
+            }
 
     TFileEditor::handleEvent( event );
+    showSelecting();
 }
+
+// TBlockIndicator
+
+TBlockIndicator::TBlockIndicator( const TRect& bounds ) :
+    TIndicator( bounds ),
+    block( False )
+{
+}
+
+TBlockIndicator::TBlockIndicator( StreamableInit ) :
+    TIndicator( streamableInit ),
+    block( False )
+{
+}
+
+void TBlockIndicator::setBlock( Boolean on )
+{
+    if( block != on )
+        {
+        block = on;
+        drawView();
+        }
+}
+
+// "B" in the column after the modified mark; the position never reaches
+// it (" 65535:" starts in column 2)
+void TBlockIndicator::draw()
+{
+    TIndicator::draw();
+    if( block == True && size.x > 1 )
+        writeChar( 1, 0, 'B', 1, 1 );
+}
+
+const char * const TBlockIndicator::name = "TBlockIndicator";
+
+TStreamable *TBlockIndicator::build()
+{
+    return new TBlockIndicator( streamableInit );
+}
+
+TStreamableClass RBlockIndicator( TBlockIndicator::name,
+                                  TBlockIndicator::build,
+                                  __DELTA(TBlockIndicator)
+                                );
 
 const char * const TAdvancedEditor::name = "TAdvancedEditor";
 

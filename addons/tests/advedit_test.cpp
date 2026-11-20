@@ -3,6 +3,7 @@
 /*------------------------------------------------------------*/
 
 #define Uses_TAdvancedEditor
+#define Uses_TBlockIndicator
 #define Uses_TEditor
 #define Uses_TEvent
 #define Uses_TKeys
@@ -27,7 +28,7 @@ static void check( bool ok, const char *what )
 
 // what the keyboard sends: the scan code of the letter and the control
 // character (kbCtrlC etc. have only the character)
-const ushort keyCtrlA = 0x1E01, keyCtrlC = 0x2E03, keyCtrlK = 0x250B,
+const ushort keyCtrlA = 0x1E01, keyCtrlB = 0x3002, keyCtrlC = 0x2E03, keyCtrlK = 0x250B,
              keyCtrlV = 0x2F16, keyCtrlX = 0x2D18;
 
 static void key( TEditor *ed, ushort keyCode )
@@ -119,6 +120,27 @@ int main()
     e.what = evMouseWheel;
     ed->handleEvent( e );
     check( ed->delta.y == 0, "wheel up stops at the top" );
+
+    // Ctrl+B: the cursor keys select without Shift, a second Ctrl+B ends it
+    TBlockIndicator *ind = new TBlockIndicator( TRect( 0, 0, 14, 1 ) );
+    TAdvancedEditor *bed = new TAdvancedEditor( r, 0, 0, ind, 0 );
+    bed->insertText( many.c_str(), ushort( many.size() ), False );
+    bed->setSelect( 0, 0, False );
+    key( bed, keyCtrlB );
+    check( ind->block == True, "Ctrl+B shows B" );
+    key( bed, kbDown );
+    key( bed, kbDown );
+    check( selection( bed ) == "line\r\nline\r\n", "Ctrl+B, Down, Down selects two lines" );
+    key( bed, keyCtrlB );
+    check( ind->block == False, "the second Ctrl+B hides B" );
+    key( bed, kbDown );
+    check( bed->selStart == bed->selEnd, "after it Down does not select" );
+    key( bed, keyCtrlB );
+    key( bed, kbRight );
+    key( bed, keyCtrlC );
+    check( ind->block == False && selection( clip ) == "l", "Ctrl+C copies and ends selecting" );
+    TObject::destroy( bed );
+    TObject::destroy( ind );
 
     TEditor::clipboard = 0;
     TObject::destroy( ed );
