@@ -89,7 +89,7 @@ code-page byte. Characters missing from the code page are ignored.
 - **Mode:** raw, alternate screen, auto-wrap off. The previous terminal state is restored on exit, on a crash (`SIGSEGV` etc.), and on `SIGTERM` and `SIGHUP`. Ctrl-C, Ctrl-S, Ctrl-Q and Ctrl-Z reach the program as ordinary keys, as in the DOS editor.
 - **Keys:** xterm, rxvt and Linux console escape sequences are translated to BIOS codes from `tkeys.h`: F1–F12, arrows, Home/End/PgUp/PgDn/Ins/Del with Shift/Ctrl/Alt, Shift-Tab. Alt+letter arrives as `ESC`+letter. With a Cyrillic keyboard layout Alt+«а» works as Alt-F, because the key's ЙЦУКЕН position is used. A lone Esc is recognised after 40 ms.
 - **Shift state** (Shift+arrow selection in the editor, `dragGrow`) comes from the modifiers of the last key: `TEventQueue::getShiftState()`.
-- **Mouse:** the xterm SGR protocol (1006) with button and drag tracking (1002). Double clicks and auto-repeat work; the wheel is not supported (TV 1.0 has no wheel).
+- **Mouse:** the xterm SGR protocol (1006) with button and drag tracking (1002). Double clicks and auto-repeat work. The wheel gives `evMouseWheel` events (see below); TV 1.0 had no wheel, so its own views ignore them.
 - **Output:** compared with the previous frame, so only changed cells are sent. When nothing changes the program writes nothing, so there is no ssh traffic.
 - **Diagnostics:** `bin/keytest` shows which key codes and mouse events your terminal sends.
 
@@ -129,6 +129,7 @@ code-page byte. Characters missing from the code page are ignored.
 - **`include/tvcompat.h`, `include/compat/*.h`:** replacements for `dos.h`, `dir.h`, `mem.h`, `iostream.h`, `strstrea.h` and other Borland headers.
 - **`TProgram::getEvent`:** handles resizing, flushes the screen and waits up to 30 ms for input instead of busy polling.
 - **`TEditor::drawLines`:** virtual, so that a derived editor can colour its text (used by `TYamlEditor`).
+- **Mouse wheel:** a new event `evMouseWheel` (0x0020) with the direction in `event.mouse.buttons` (`mwUp`, `mwDown`, `mwLeft`, `mwRight`). It is not part of `evMouse`, so code written for TV 1.0 never sees it. It is a positional event (`positionalEvents`), so it goes to the view under the mouse, and only if that view has `evMouseWheel` in its `eventMask`. `TAdvancedEditor` uses it.
 - **Bugs in the original found by GCC and ASan, now fixed:**
   - `va_start` in `messageBox`;
   - returning addresses of local buffers in `helpbase.cpp`;

@@ -14,7 +14,8 @@
 /*    All Rights Reserved.                                    */
 /*                                                            */
 /*    Linux port: mouse and keyboard events come from the     */
-/*    terminal decoder instead of INT 33h / INT 16h.          */
+/*    terminal decoder instead of INT 33h / INT 16h; the      */
+/*    wheel gives evMouseWheel events.                        */
 /*                                                            */
 /*------------------------------------------------------------*/
 
@@ -36,6 +37,9 @@ MouseEventType TEventQueue::lastMouse;
 MouseEventType TEventQueue::curMouse;
 MouseEventType TEventQueue::downMouse;
 ushort TEventQueue::downTicks = 0;
+
+// the wheel step of the last getMouseState() (mwUp ... mwRight), or 0
+static uchar wheelStep = 0;
 
 TEventQueue::TEventQueue()
 {
@@ -71,6 +75,14 @@ void TEventQueue::getMouseEvent( TEvent& ev )
         {
 
         getMouseState( ev );
+
+        if( wheelStep != 0 )
+            {
+            ev.what = evMouseWheel;
+            ev.mouse.buttons = wheelStep;
+            lastMouse.where = ev.mouse.where;
+            return;
+            }
 
         if( ev.mouse.buttons == 0 && lastMouse.buttons != 0 )
             {
@@ -121,6 +133,7 @@ void TEventQueue::getMouseState( TEvent & ev )
     tvplatform::MouseState ms;
     if( !tvplatform::getMouse( ms ) )
         ms = tvplatform::currentMouse();
+    wheelStep = ms.wheel;
     curMouse.buttons = ms.buttons;
     curMouse.doubleClick = False;
     curMouse.where.x = ms.x;

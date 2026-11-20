@@ -59,6 +59,11 @@ ed->clipboardKeys = False;  // the WordStar keys again
   has to create it (as TVEDIT does), or Ctrl+C and Ctrl+V do nothing.
 - `cmSelectAll` (530) is an editor command like `cmCharLeft` (500–523): it
   cannot be disabled and can be put into a menu as it is.
+- The mouse wheel scrolls the text under the mouse by `wheelLines` lines
+  (3); Shift+wheel and the sideways wheel scroll horizontally. The cursor
+  and the selection stay where they are. `wheel()` is virtual and can be
+  overridden. The wheel comes as `evMouseWheel`, an event of this port
+  (see `include/system.h`).
 
 ## TYamlEditor, TYamlEditWindow
 

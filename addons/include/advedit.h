@@ -16,6 +16,8 @@
 /*   work as before.  Selecting with Shift and the cursor keys (arrows,    */
 /*   Home/End, PgUp/PgDn, Ctrl+arrows) is TEditor's own.                   */
 /*                                                                         */
+/*   The mouse wheel scrolls the text (evMouseWheel, Linux port).          */
+/*                                                                         */
 /*   Include through tvaddons.h with Uses_TAdvancedEditor.                 */
 /*                                                                         */
 /* ------------------------------------------------------------------------*/
@@ -53,6 +55,12 @@ public:
 
     // False gives Ctrl+C, X, V and A back to the WordStar commands
     Boolean clipboardKeys;
+
+    // Scrolls the text by wheelLines for one wheel step (mwUp, mwDown,
+    // mwLeft, mwRight; with Shift, up and down scroll sideways).  The
+    // cursor and the selection do not move.
+    virtual void wheel( uchar direction );
+    int wheelLines;
 
 private:
 

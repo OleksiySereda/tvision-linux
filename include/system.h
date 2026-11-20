@@ -27,6 +27,12 @@ const int evKeyDown   = 0x0010;
 const int evCommand   = 0x0100;
 const int evBroadcast = 0x0200;
 
+// Linux port: the mouse wheel.  Not part of evMouse, so views written for
+// TV 1.0 never see it; it goes to the view under the mouse (see
+// positionalEvents) if that view has evMouseWheel in its eventMask.
+// event.mouse.buttons is one of mwUp, mwDown, mwLeft, mwRight.
+const int evMouseWheel = 0x0020;
+
 /* Event masks */
 
 const int evNothing   = 0x0000;
@@ -38,6 +44,13 @@ const int evMessage   = 0xFF00;
 
 const int mbLeftButton  = 0x01;
 const int mbRightButton = 0x02;
+
+/* Mouse wheel directions (evMouseWheel), Linux port */
+
+const int mwUp    = 0x01;
+const int mwDown  = 0x02;
+const int mwLeft  = 0x04;
+const int mwRight = 0x08;
 
 #endif  // __EVENT_CODES
 

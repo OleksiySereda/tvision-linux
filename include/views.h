@@ -169,7 +169,7 @@ const ushort
 
 //  Event masks
 
-    positionalEvents    = evMouse,
+    positionalEvents    = evMouse | evMouseWheel,   // Linux port: + wheel
     focusedEvents       = evKeyboard | evCommand;
 
 #endif  // __COMMAND_CODES

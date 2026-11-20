@@ -28,6 +28,7 @@ struct MouseState
 {
     unsigned char buttons;      // mbLeftButton | mbRightButton
     short x, y;
+    unsigned char wheel;        // a wheel step: mwUp ... mwRight, or 0
 };
 
 // Puts the terminal into full-screen raw mode.  Safe to call repeatedly.

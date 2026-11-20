@@ -97,6 +97,29 @@ int main()
     key( ed, keyCtrlC );
     check( ed->bufLen == len, "Ctrl+C does not copy or cut when off" );
 
+    // the wheel scrolls the text, the cursor stays
+    std::string many;
+    for( int i = 0; i < 100; i++ )
+        many += "line\r\n";
+    ed->setSelect( 0, ed->bufLen, False );
+    ed->insertText( many.c_str(), ushort( many.size() ), False );
+    ed->setSelect( 0, 0, False );
+    ed->scrollTo( 0, 0 );
+    check( ( ed->eventMask & evMouseWheel ) != 0, "the editor takes evMouseWheel" );
+    TEvent e;
+    memset( &e, 0, sizeof( e ) );
+    e.what = evMouseWheel;
+    e.mouse.buttons = mwDown;
+    ed->handleEvent( e );
+    check( ed->delta.y == 3 && ed->curPtr == 0, "wheel down scrolls 3 lines" );
+    check( e.what == evNothing, "the wheel event is cleared" );
+    e.what = evMouseWheel;
+    e.mouse.buttons = mwUp;
+    ed->handleEvent( e );
+    e.what = evMouseWheel;
+    ed->handleEvent( e );
+    check( ed->delta.y == 0, "wheel up stops at the top" );
+
     TEditor::clipboard = 0;
     TObject::destroy( ed );
     TObject::destroy( clip );

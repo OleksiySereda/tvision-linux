@@ -229,8 +229,21 @@ static void pushSpecial( SpecialKey k, int mods )
 
 static void pushMouse( int b, int x, int y, bool release )
 {
+    lastShift = modsToShift( ((b & 4) ? mShift : 0) | ((b & 8) ? mAlt : 0) |
+                             ((b & 16) ? mCtrl : 0) );
     if( b & 64 )
-        return;                         // wheel: not supported by TV 1.0
+        {
+        // wheel: 64 up, 65 down, 66 left, 67 right; one event per step,
+        // the buttons and mouseNow stay as they are
+        static const unsigned char dir[4] = { 0x01, 0x02, 0x04, 0x08 };
+        MouseState ms = mouseNow;
+        ms.x = short( x - 1 );
+        ms.y = short( y - 1 );
+        ms.wheel = dir[b & 3];
+        if( mouseQueue.size() < 64 )
+            mouseQueue.push_back( ms );
+        return;
+        }
     unsigned char mask = 0;
     switch( b & 3 )
         {
@@ -250,8 +263,7 @@ static void pushMouse( int b, int x, int y, bool release )
         }
     if( (b & 3) == 3 && !(b & 32) )
         ms.buttons = 0;                 // legacy "release" report
-    lastShift = modsToShift( ((b & 4) ? mShift : 0) | ((b & 8) ? mAlt : 0) |
-                             ((b & 16) ? mCtrl : 0) );
+    ms.wheel = 0;
     mouseNow = ms;
     if( mouseQueue.size() >= 64 )
         mouseQueue.pop_back();
