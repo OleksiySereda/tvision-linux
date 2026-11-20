@@ -1,7 +1,8 @@
 # Turbo Vision 1.0 for Linux (GCC, C++11)
 #
 #   make            library (lib/libtv.a) + demos + docdemos
-#   make lib        library only
+#   make lib        libraries only (lib/libtv.a, lib/libtvaddons.a)
+#   make check-addons  tests of the add-on classes
 #   make clean
 #
 #   make DEBUG=1    -O0 -g
@@ -16,6 +17,8 @@ CXXFLAGS += -std=c++11 -Wall -Wno-unused -Wno-parentheses \
             -Wno-class-memaccess -Wno-reorder -Wno-sign-compare \
             -Wno-overloaded-virtual -Wno-switch -Wno-int-to-pointer-cast -fno-strict-aliasing
 CPPFLAGS += -Iinclude -Iinclude/compat
+# dependency files: an object is rebuilt when a header it includes changes
+CPPFLAGS += -MMD -MP
 
 ifeq ($(DEBUG),1)
 CXXFLAGS += -O0 -g
@@ -43,17 +46,43 @@ FORMSLIB := demos/forms.cpp demos/datacoll.cpp demos/fields.cpp \
 FORMSOBJ := $(patsubst %.cpp,obj/%.o,$(FORMSLIB))
 DOCDEMOS := $(wildcard docdemos/*.cpp)
 
+# add-on classes (addons/): a library of their own, lib/libtvaddons.a
+ADDLIB   := lib/libtvaddons.a
+ADDSRC   := $(wildcard addons/source/*.cpp)
+ADDOBJ   := $(patsubst %.cpp,obj/%.o,$(ADDSRC))
+LINKADD  := -Wl,--whole-archive $(ADDLIB) $(LIB) -Wl,--no-whole-archive
+
 PROGRAMS := bin/tvdemo bin/tvedit bin/hello bin/keytest \
-            bin/tvforms bin/genphone bin/genparts bin/tvhc \
+            bin/tvforms bin/genphone bin/genparts bin/tvhc bin/yamledit \
             $(patsubst docdemos/%.cpp,bin/%,$(DOCDEMOS))
 
 all: lib $(PROGRAMS) bin/demohelp.hlp bin/phonenum.tvf bin/parts.tvf
 
-lib: $(LIB)
+lib: $(LIB) $(ADDLIB)
 
 $(LIB): $(LIBOBJ)
 	@mkdir -p $(dir $@)
 	$(AR) rcs $@ $^
+
+obj/addons/%.o: CPPFLAGS += -Iaddons/include
+
+$(ADDLIB): $(ADDOBJ)
+	@mkdir -p $(dir $@)
+	$(AR) rcs $@ $^
+
+# YAMLEDIT: TVEDIT with TYamlEditWindow
+obj/addons/demos/yamledit.o: CPPFLAGS += -Idemos
+
+bin/yamledit: obj/addons/demos/yamledit.o obj/demos/tvedit2.o obj/demos/tvedit3.o $(ADDLIB) $(LIB)
+	@mkdir -p bin
+	$(CXX) $(LDFLAGS) -o $@ $(filter %.o,$^) $(LINKADD)
+
+bin/yamlsyntax-test: obj/addons/tests/yamlsyntax_test.o $(ADDLIB) $(LIB)
+	@mkdir -p bin
+	$(CXX) $(LDFLAGS) -o $@ $< $(LINKADD)
+
+check-addons: bin/yamlsyntax-test
+	bin/yamlsyntax-test
 
 obj/%.o: %.cpp
 	@mkdir -p $(dir $@)
@@ -133,4 +162,6 @@ clean:
 # keep the docdemo objects (make would delete them as intermediates)
 .SECONDARY:
 
-.PHONY: all lib clean check-help
+-include $(shell find obj -name '*.d' 2>/dev/null)
+
+.PHONY: all lib clean check-help check-addons

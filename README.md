@@ -28,10 +28,12 @@ You need `g++` (any version with C++11; tested with GCC 13 and GCC 15) and GNU m
 There are no other dependencies; ncurses is not required.
 
 ```sh
-make            # lib/libtv.a, bin/tvdemo, bin/tvedit, bin/tvforms, bin/tvhc, bin/hello,
-                # bin/tvguid*, bin/keytest; bin/phonenum.tvf and bin/parts.tvf
+make            # lib/libtv.a, lib/libtvaddons.a, bin/tvdemo, bin/tvedit, bin/tvforms,
+                # bin/tvhc, bin/hello, bin/yamledit, bin/tvguid*, bin/keytest;
+                # bin/phonenum.tvf and bin/parts.tvf
 make check-help # compiles help/demohelp.txt and compares it with the DOS DEMOHELP.HLP
-make lib        # library only
+make check-addons  # tests of the add-on classes
+make lib        # the libraries only
 make DEBUG=1    # -O0 -g
 make ASAN=1     # AddressSanitizer + UBSan
 make clean
@@ -57,7 +59,15 @@ cd bin
 ./tvguid10      # tutorial examples; 06-16 display their own .cpp from docdemos/
 ./tvforms       # form editor: F3 opens phonenum.tvf or parts.tvf
 ./tvhc ../help/demohelp.txt   # help compiler: .txt -> .hlp + .h
+./yamledit ../addons/demos/sample.yaml   # TVEDIT with YAML syntax colouring
 ```
+
+## Add-ons
+
+[`addons/`](addons/README.md) holds new classes built on the library, in a
+library of their own (`lib/libtvaddons.a`, header `tvaddons.h`). The first
+one is `TYamlEditor`, a `TFileEditor` with YAML syntax colouring, and
+`TYamlEditWindow`, a `TEditWindow` that uses it.
 
 ### Environment variables
 
@@ -115,6 +125,7 @@ code-page byte. Characters missing from the code page are ignored.
   - `compat.cpp`: `findfirst`, `fnsplit`, `strupr`, `itoa` etc. on top of POSIX.
 - **`include/tvcompat.h`, `include/compat/*.h`:** replacements for `dos.h`, `dir.h`, `mem.h`, `iostream.h`, `strstrea.h` and other Borland headers.
 - **`TProgram::getEvent`:** handles resizing, flushes the screen and waits up to 30 ms for input instead of busy polling.
+- **`TEditor::drawLines`:** virtual, so that a derived editor can colour its text (used by `TYamlEditor`).
 - **Bugs in the original found by GCC and ASan, now fixed:**
   - `va_start` in `messageBox`;
   - returning addresses of local buffers in `helpbase.cpp`;

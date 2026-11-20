@@ -210,7 +210,9 @@ public:
     void deleteRange( ushort, ushort, Boolean );
     void doUpdate();
     void doSearchReplace();
-    void drawLines( int, int, ushort );
+    // Linux port: virtual, so that derived editors can colour the text
+    // (see addons/include/yamledit.h)
+    virtual void drawLines( int, int, ushort );
     void formatLine(void *, ushort, int, ushort );
     void find();
     ushort getMousePtr( TPoint );

@@ -1,0 +1,29 @@
+# Sample file for yamledit: every kind of token it colours
+---
+title: "Acme Shop"          # a quoted string
+version: 2.4
+enabled: true
+retries: 3
+timeout: ~
+base: &defaults
+  image: shop:latest
+  ports: [8080, "8443:443"]
+web:
+  <<: *defaults
+  env: {DEBUG: false, LEVEL: 'info'}
+  tags: !!set
+    ? blue
+    ? green
+servers:
+  - name: web1
+    host: 10.0.0.11
+  - name: db1
+    host: db1.internal
+script: |
+  echo "starting"
+  ./run --port 8080   # this is text, not a comment
+notes: >-
+  Folded text is
+  joined into one line.
+done: yes
+...
