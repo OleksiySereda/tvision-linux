@@ -13,6 +13,7 @@
 #define Uses_TApplication
 #define Uses_TEditWindow
 #define Uses_TYamlEditWindow
+#define Uses_TEditorDialogs
 #define Uses_TDeskTop
 #define Uses_TRect
 #define Uses_TEditor
@@ -69,7 +70,8 @@ TEditorApp::TEditorApp() :
     ts.enableCmd( cmSearchAgain );
     disableCommands( ts );
 
-    TEditor::editorDialog = doEditDialog;
+    TEditor::editorDialog = editorDialogs;     // the add-ons dialogs
+    editorFileMask = "*.y*ml";
     clipWindow = openEditor( 0, False );
     if( clipWindow != 0 )
         {

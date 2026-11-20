@@ -70,8 +70,12 @@ library of their own (`lib/libtvaddons.a`, header `tvaddons.h`):
 - `TAdvancedEditor`: a `TFileEditor` where Ctrl+C, Ctrl+X, Ctrl+V and Ctrl+A
   copy, cut, paste and select all, Ctrl+B selects with the cursor keys
   without Shift (as F3 in Midnight Commander), and the mouse wheel scrolls;
-- `TYamlEditor`: a `TAdvancedEditor` with YAML syntax colouring, and
-  `TYamlEditWindow`, a `TEditWindow` that uses it.
+- `TLineNumbers`: line numbers left of the editor, with marked lines;
+- `TColoredEditor`: the base of syntax colouring editors (`scanLine()`,
+  `classColor()`);
+- `TYamlEditor`: a `TColoredEditor` with YAML syntax colouring, and
+  `TYamlEditWindow`, a `TEditWindow` that uses it;
+- `editorDialogs()`: the Find, Replace, Save and error dialogs of the editors.
 
 ### Environment variables
 
@@ -129,7 +133,7 @@ code-page byte. Characters missing from the code page are ignored.
   - `compat.cpp`: `findfirst`, `fnsplit`, `strupr`, `itoa` etc. on top of POSIX.
 - **`include/tvcompat.h`, `include/compat/*.h`:** replacements for `dos.h`, `dir.h`, `mem.h`, `iostream.h`, `strstrea.h` and other Borland headers.
 - **`TProgram::getEvent`:** handles resizing, flushes the screen and waits up to 30 ms for input instead of busy polling.
-- **`TEditor::drawLines`:** virtual, so that a derived editor can colour its text (used by `TYamlEditor`).
+- **`TEditor::drawLines`:** virtual, so that a derived editor can colour its text (used by `TColoredEditor`).
 - **Mouse wheel:** a new event `evMouseWheel` (0x0020) with the direction in `event.mouse.buttons` (`mwUp`, `mwDown`, `mwLeft`, `mwRight`). It is not part of `evMouse`, so code written for TV 1.0 never sees it. It is a positional event (`positionalEvents`), so it goes to the view under the mouse, and only if that view has `evMouseWheel` in its `eventMask`. `TAdvancedEditor` uses it.
 - **Bugs in the original found by GCC and ASan, now fixed:**
   - `va_start` in `messageBox`;

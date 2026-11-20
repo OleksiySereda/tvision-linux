@@ -172,6 +172,11 @@ class TAdvancedEditor;
 // The numbers of the lines an editor shows, in a column of their own left
 // of it: 4 digits (white on gray) and 2 blanks, so 6 wide.  Put it next to
 // the editor, at the same height; it follows the editor's scrolling.
+//
+// A line may be marked: its number is shown in a colour of its own, for
+// a breakpoint, an error or the line being run.  The marks belong to the
+// line numbers, not to the text: they do not move when lines are inserted
+// or deleted above them.
 class TLineNumbers : public TView
 {
 
@@ -185,10 +190,24 @@ public:
     // the colour of the digits; the 2 blanks take the editor's
     static uchar numberColor;
 
+    // marks line (1 = the first) with the attribute color, or changes the
+    // colour of its mark; color 0 removes the mark
+    void setMark( int line, uchar color );
+    void clearMark( int line )
+        { setMark( line, 0 ); }
+    void clearMarks();
+    // the colour of the mark of line, 0 if it has none
+    uchar markOf( int line ) const;
+
 private:
 
     friend class TAdvancedEditor;       // forgets editor when it shuts down
     TAdvancedEditor *editor;
+
+    enum { maxMarks = 64 };
+    int markLine[maxMarks];
+    uchar markColor[maxMarks];
+    int markCount;
 };
 
 #endif  // Uses_TLineNumbers

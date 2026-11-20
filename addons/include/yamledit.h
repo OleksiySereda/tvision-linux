@@ -4,12 +4,13 @@
 /*                                                                         */
 /*   defines the classes TYamlEditor and TYamlEditWindow                   */
 /*                                                                         */
-/*   TYamlEditor is a TAdvancedEditor that colours YAML: keys, quoted      */
+/*   TYamlEditor is a TColoredEditor that colours YAML: keys, quoted       */
 /*   strings, numbers and true/false/null, comments, punctuation (- : [ ]  */
 /*   { } , | >), anchors, aliases and tags, document markers, and the     */
 /*   text of block scalars (key: | ...).  The text, editing, files and     */
 /*   streaming are those of TFileEditor, the Ctrl+C/X/V/A keys those of    */
-/*   TAdvancedEditor (advedit.h).                                          */
+/*   TAdvancedEditor (advedit.h), the colouring that of TColoredEditor     */
+/*   (colredit.h).                                                         */
 /*                                                                         */
 /*   TYamlEditWindow is a TEditWindow whose editor is a TYamlEditor.       */
 /*                                                                         */
@@ -54,7 +55,7 @@ class TRect;
 class TScrollBar;
 class TIndicator;
 
-class TYamlEditor : public TAdvancedEditor
+class TYamlEditor : public TColoredEditor
 {
 
 public:
@@ -62,16 +63,14 @@ public:
     TYamlEditor( const TRect&, TScrollBar *, TScrollBar *, TIndicator *,
                  const char *aFileName );
 
-    virtual void drawLines( int y, int count, ushort linePtr );
-
-    // False shows the text without colours.  The colours are used only
-    // with the colour palette (not with TVMONO or a black and white
-    // terminal).
-    Boolean highlight;
+    // the YamlToken of each character and its colour (TColoredEditor)
+    virtual void scanLine( ushort linePtr, const char *s, int n, uchar *cls );
+    virtual uchar classColor( uchar cls, uchar normal );
 
     // Foreground colour of each YamlToken, on the editor's own background;
     // 0xFF leaves the normal text colour.  darkColors is used on a black,
     // blue, red or magenta background, lightColors on the others.
+    // highlight (TColoredEditor) turns the colours off.
     static uchar darkColors[ytCount];
     static uchar lightColors[ytCount];
 
@@ -79,8 +78,6 @@ public:
     Boolean inBlockScalar( ushort linePtr );
 
 private:
-
-    int lineText( ushort p, char *buf, int size );
 
     virtual const char *streamableName() const
         { return name; }

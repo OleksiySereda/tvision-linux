@@ -5,11 +5,8 @@
 /*                  TYamlEditor and TYamlEditWindow member    */
 /*                  functions, their stream registration      */
 /*                                                            */
-/*   TYamlEditor::drawLines() lets TEditor::formatLine() lay  */
-/*   out the line (tabs, selection, horizontal scrolling) and */
-/*   then gives the cells in the normal text colour the       */
-/*   colour of their YAML token.  Selected text keeps the     */
-/*   selection colour.                                        */
+/*   TColoredEditor draws the lines; scanLine() gives it the  */
+/*   YAML token of each character, classColor() its colour.  */
 /*------------------------------------------------------------*/
 
 #define Uses_TYamlEditor
@@ -22,8 +19,6 @@
 #define Uses_ipstream
 #include <tvaddons.h>
 
-// longest part of a line that is classified; the rest keeps its colour
-const int maxScanLength = 1024;
 // how many lines up inBlockScalar() looks for the "key: |" line
 const int maxBlockSearch = 2000;
 
@@ -36,29 +31,13 @@ TYamlEditor::TYamlEditor( const TRect& bounds,
                           TScrollBar *aVScrollBar,
                           TIndicator *aIndicator,
                           const char *aFileName ) :
-    TAdvancedEditor( bounds, aHScrollBar, aVScrollBar, aIndicator, aFileName ),
-    highlight( True )
+    TColoredEditor( bounds, aHScrollBar, aVScrollBar, aIndicator, aFileName )
 {
 }
 
 TYamlEditor::TYamlEditor( StreamableInit ) :
-    TAdvancedEditor( streamableInit ),
-    highlight( True )
+    TColoredEditor( streamableInit )
 {
-}
-
-// the text of the line at p, without the line end
-int TYamlEditor::lineText( ushort p, char *buf, int size )
-{
-    int n = 0;
-    for( ; p < bufLen && n < size; p++ )
-        {
-        char c = bufChar( p );
-        if( c == '\r' || c == '\n' )
-            break;
-        buf[n++] = c;
-        }
-    return n;
 }
 
 static int indentOf( const char *s, int n )
@@ -123,46 +102,19 @@ Boolean TYamlEditor::inBlockScalar( ushort linePtr )
     return False;
 }
 
-void TYamlEditor::drawLines( int y, int count, ushort linePtr )
+void TYamlEditor::scanLine( ushort linePtr, const char *s, int n, uchar *cls )
 {
-    ushort color = getColor( 0x0201 );
-    uchar normal = uchar( color );
-    Boolean colours = Boolean( highlight && TProgram::appPalette == apColor );
+    yamlScanLine( s, n, inBlockScalar( linePtr ), cls );
+}
+
+uchar TYamlEditor::classColor( uchar cls, uchar normal )
+{
     uchar bg = uchar( ( normal >> 4 ) & 0x07 );
     const uchar *fg = ( bg == 2 || bg == 3 || bg == 6 || bg == 7 ) ? lightColors : darkColors;
-
-    while( count-- > 0 )
-        {
-        ushort b[maxLineLength + maxViewWidth];     // as in TEditor::drawLines
-        int width = delta.x + size.x;
-        formatLine( b, linePtr, width, color );
-
-        if( colours )
-            {
-            char text[maxScanLength];
-            uchar cls[maxScanLength];
-            int n = lineText( linePtr, text, maxScanLength );
-            yamlScanLine( text, n, inBlockScalar( linePtr ), cls );
-
-            // the same columns as formatLine(): tabs to multiples of 8
-            int x = 0;
-            for( int i = 0; i < n && x < width; i++ )
-                {
-                int cells = text[i] == '\t' ? 8 - ( x & 7 ) : 1;
-                uchar f = fg[cls[i]];
-                for( ; cells > 0 && x < width; cells--, x++ )
-                    {
-                    uchar attr = uchar( b[x] >> 8 );
-                    if( attr == normal && f != 0xFF && f != bg )
-                        b[x] = ushort( ( b[x] & 0x00FF ) | ( ( ( normal & 0xF0 ) | f ) << 8 ) );
-                    }
-                }
-            }
-
-        writeBuf( 0, y, size.x, 1, &b[delta.x] );
-        linePtr = nextLine( linePtr );
-        y++;
-        }
+    uchar f = fg[cls];
+    if( f == 0xFF || f == bg )
+        return normal;
+    return uchar( ( normal & 0xF0 ) | f );
 }
 
 const char * const TYamlEditor::name = "TYamlEditor";

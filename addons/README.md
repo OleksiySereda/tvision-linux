@@ -103,9 +103,76 @@ insert( new TLineNumbers( nr, ed ) );
 insert( ed );
 ```
 
+A line can be marked: its number is then shown in a colour of its own, for a
+breakpoint, an error or the line being run. The marks belong to the numbers,
+not to the text, so they stay on their line numbers when lines are inserted
+or deleted; the program sets them again when it needs to. Up to 64 lines are
+marked; past that the oldest mark goes.
+
+```cpp
+numbers->setMark( 12, 0x4F );       // line 12: white on red
+numbers->markOf( 12 );              // 0x4F; 0 for an unmarked line
+numbers->clearMark( 12 );           // or setMark( 12, 0 )
+numbers->clearMarks();
+```
+
+## TColoredEditor
+
+A `TAdvancedEditor` that colours its text by classes that a derived class
+gives the characters of each line. A syntax colouring editor needs only two
+functions:
+
+```cpp
+#define Uses_TColoredEditor
+#include <tvaddons.h>
+
+// numbers in green
+class TNumberEditor : public TColoredEditor
+{
+public:
+    TNumberEditor( const TRect& r, TScrollBar *h, TScrollBar *v, TIndicator *i, const char *f ) :
+        TColoredEditor( r, h, v, i, f ) {}
+    // the class of each of the n characters s of the line at linePtr
+    virtual void scanLine( ushort linePtr, const char *s, int n, uchar *cls )
+        { for( int k = 0; k < n; k++ ) cls[k] = s[k] >= '0' && s[k] <= '9'; }
+    // the attribute of a class, where the normal attribute is normal
+    virtual uchar classColor( uchar cls, uchar normal )
+        { return cls == 1 ? uchar( ( normal & 0xF0 ) | 0x0A ) : normal; }
+};
+```
+
+`drawLines()` lets `TEditor::formatLine()` lay out the line (tabs, selection,
+horizontal scrolling) and then gives the cells in the normal text colour the
+colour of their class; selected text keeps the selection colour. Lines are
+classified up to `TColoredEditor::maxScanLength` (1024) characters, and
+`lineText()` gives the text of a line. `highlight = False` turns the colours
+off; with the monochrome or black-and-white palette nothing is coloured.
+`linePtr` lets `scanLine()` look at the lines around (as `TYamlEditor` does for
+block scalars). `TColoredEditor` is not registered for streams itself: a
+derived class registers its own `name` and `build()`.
+
+## Editor dialogs: editorDialogs()
+
+`TEditor` asks its questions through `TEditor::editorDialog`, which by default
+answers *Cancel* to everything: no Find, no Replace, no "Save?" and no
+"Save as". `editorDialogs()` answers all of them with the dialogs of TVEDIT:
+
+```cpp
+#define Uses_TEditorDialogs
+#include <tvaddons.h>
+
+TEditor::editorDialog = editorDialogs;
+editorFileMask = "*.yaml";          // the file list of Save as; "*.*" by default
+```
+
+Then `cmFind`, `cmReplace` and `cmSearchAgain` work (Ctrl+Q F, Ctrl+Q A,
+Ctrl+L in the editor) and can be put into a menu. `newFindDialog()`,
+`newReplaceDialog()` and `execEditorDialog()` are there for programs that
+build their own `editorDialog`.
+
 ## TYamlEditor, TYamlEditWindow
 
-`TYamlEditor` is a `TAdvancedEditor` that colours YAML. Editing, files, the
+`TYamlEditor` is a `TColoredEditor` that colours YAML. Editing, files, the
 clipboard, find and replace, undo and streaming all come from `TFileEditor`,
 the Ctrl+C/X/V/A keys from `TAdvancedEditor`; only the drawing is new. `TYamlEditWindow` is a `TEditWindow` whose editor is a
 `TYamlEditor`, so it can be used wherever a `TEditWindow` is used.
@@ -154,10 +221,9 @@ black-and-white palette (`TVMONO=1`, `TERM=vt100`), nothing is coloured.
 
 How it works:
 
-- `TYamlEditor` overrides `TEditor::drawLines()`, which is virtual in this port
-  for that purpose (`include/editors.h`). `TEditor::formatLine()` still lays out
-  the line (tabs, selection, horizontal scrolling); then the cells in the
-  normal text colour get the colour of their token.
+- `TColoredEditor` overrides `TEditor::drawLines()`, which is virtual in this
+  port for that purpose (`include/editors.h`); `TYamlEditor::scanLine()` gives
+  it the token of each character and `classColor()` its colour.
 - `yamlScanLine()` classifies the characters of one line. It does not parse
   the file, so invalid YAML is coloured as well as it can be, never rejected.
 - Block scalar text is recognised by `inBlockScalar()`. It looks up from the

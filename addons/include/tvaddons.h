@@ -20,7 +20,16 @@
 #endif
 
 #if defined( Uses_TYamlEditor )
+#define Uses_TColoredEditor
+#endif
+
+#if defined( Uses_TColoredEditor )
 #define Uses_TAdvancedEditor
+#endif
+
+#if defined( Uses_TEditorDialogs )
+#define Uses_TEditor
+#define Uses_TDialog
 #endif
 
 #if defined( Uses_TAdvancedEditor )
@@ -42,4 +51,6 @@
 // the class declarations are selected inside by the Uses_ macros;
 // a base class comes before the classes derived from it
 #include <advedit.h>
+#include <colredit.h>
 #include <yamledit.h>
+#include <editdlg.h>

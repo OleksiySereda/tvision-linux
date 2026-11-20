@@ -1,9 +1,12 @@
 /*------------------------------------------------------------*/
-/*   Tests of the TAdvancedEditor keys.  make check-addons    */
+/*   Tests of TAdvancedEditor, TLineNumbers and             */
+/*   TColoredEditor.  make check-addons                       */
 /*------------------------------------------------------------*/
 
 #define Uses_TAdvancedEditor
 #define Uses_TBlockIndicator
+#define Uses_TLineNumbers
+#define Uses_TColoredEditor
 #define Uses_TEditor
 #define Uses_TEvent
 #define Uses_TKeys
@@ -47,6 +50,20 @@ static std::string text( TEditor *ed )
         s += ed->bufChar( p );
     return s;
 }
+
+// colours the digits 1 to 9 by their value
+class TDigitEditor : public TColoredEditor
+{
+public:
+    TDigitEditor( const TRect &r ) : TColoredEditor( r, 0, 0, 0, 0 ) {}
+    virtual void scanLine( ushort, const char *s, int n, uchar *cls )
+        {
+        for( int i = 0; i < n; i++ )
+            cls[i] = s[i] >= '1' && s[i] <= '9' ? uchar( s[i] - '0' ) : 0;
+        }
+    virtual uchar classColor( uchar cls, uchar normal )
+        { return cls != 0 ? uchar( 0x40 | cls ) : normal; }
+};
 
 static std::string selection( TEditor *ed )
 {
@@ -141,6 +158,40 @@ int main()
     check( ind->block == False && selection( clip ) == "l", "Ctrl+C copies and ends selecting" );
     TObject::destroy( bed );
     TObject::destroy( ind );
+
+    // line marks
+    TLineNumbers *nums = new TLineNumbers( TRect( 0, 0, 6, 25 ), ed );
+    check( ed->lineNumbers == nums, "TLineNumbers attaches to the editor" );
+    nums->setMark( 2, 0x2F );
+    nums->setMark( 5, 0x4F );
+    check( nums->markOf( 2 ) == 0x2F && nums->markOf( 5 ) == 0x4F && nums->markOf( 3 ) == 0,
+           "setMark marks lines" );
+    nums->setMark( 2, 0x1F );
+    check( nums->markOf( 2 ) == 0x1F, "setMark changes a mark" );
+    nums->clearMark( 2 );
+    check( nums->markOf( 2 ) == 0 && nums->markOf( 5 ) == 0x4F, "clearMark removes one mark" );
+    for( int i = 1; i <= 70; i++ )
+        nums->setMark( 100 + i, 0x2F );
+    check( nums->markOf( 5 ) == 0 && nums->markOf( 170 ) == 0x2F, "past 64 marks the oldest goes" );
+    nums->clearMarks();
+    check( nums->markOf( 170 ) == 0, "clearMarks removes all" );
+    TObject::destroy( nums );
+    check( ed->lineNumbers == 0, "destroyed line numbers detach" );
+
+    // TColoredEditor: scanLine and classColor, through a derived class
+    TDigitEditor *ded = new TDigitEditor( r );
+    const char *dt = "a1b2";
+    ded->insertText( dt, ushort( strlen( dt ) ), False );
+    char buf[16];
+    int n = ded->lineText( 0, buf, sizeof( buf ) );
+    check( n == 4 && memcmp( buf, dt, 4 ) == 0, "lineText gives the line" );
+    uchar cls[4];
+    ded->scanLine( 0, buf, n, cls );
+    check( cls[0] == 0 && cls[1] == 1 && cls[3] == 2, "scanLine classifies" );
+    check( ded->classColor( 2, 0x1E ) == 0x42 && ded->classColor( 0, 0x1E ) == 0x1E,
+           "classColor colours the classes" );
+    check( ded->highlight == True, "highlight is on" );
+    TObject::destroy( ded );
 
     TEditor::clipboard = 0;
     TObject::destroy( ed );

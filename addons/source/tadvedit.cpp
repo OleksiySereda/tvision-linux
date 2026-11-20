@@ -72,7 +72,8 @@ uchar TLineNumbers::numberColor = 0x7F;     // bright white on light gray
 
 TLineNumbers::TLineNumbers( const TRect& bounds, TAdvancedEditor *anEditor ) :
     TView( bounds ),
-    editor( anEditor )
+    editor( anEditor ),
+    markCount( 0 )
 {
     growMode = gfGrowHiY;
     if( editor != 0 )
@@ -87,6 +88,65 @@ void TLineNumbers::shutDown()
     TView::shutDown();
 }
 
+// the marks are kept unsorted; with more than maxMarks the oldest goes
+void TLineNumbers::setMark( int line, uchar color )
+{
+    int i = 0;
+    while( i < markCount && markLine[i] != line )
+        i++;
+    if( i < markCount )
+        {
+        if( markColor[i] == color )
+            return;
+        if( color != 0 )
+            markColor[i] = color;
+        else
+            {
+            markCount--;
+            for( ; i < markCount; i++ )
+                {
+                markLine[i] = markLine[i+1];
+                markColor[i] = markColor[i+1];
+                }
+            }
+        }
+    else
+        {
+        if( color == 0 )
+            return;
+        if( markCount == maxMarks )
+            {
+            markCount--;
+            for( int k = 0; k < markCount; k++ )
+                {
+                markLine[k] = markLine[k+1];
+                markColor[k] = markColor[k+1];
+                }
+            }
+        markLine[markCount] = line;
+        markColor[markCount] = color;
+        markCount++;
+        }
+    drawView();
+}
+
+void TLineNumbers::clearMarks()
+{
+    if( markCount != 0 )
+        {
+        markCount = 0;
+        drawView();
+        }
+}
+
+uchar TLineNumbers::markOf( int line ) const
+{
+    for( int i = 0; i < markCount; i++ )
+        if( markLine[i] == line )
+            return markColor[i];
+    return 0;
+}
+
 void TLineNumbers::draw()
 {
     ushort blank = editor != 0 ? uchar( editor->getColor( 1 ) ) : uchar( getColor( 1 ) );
@@ -98,16 +158,17 @@ void TLineNumbers::draw()
         TDrawBuffer b;
         b.moveChar( 0, ' ', blank, size.x );
         int digits = size.x > 2 ? size.x - 2 : size.x;
-        b.moveChar( 0, ' ', number, digits );
-        if( editor != 0 )
+        int line = editor != 0 ? editor->delta.y + y + 1 : 0;
+        Boolean shown = Boolean( editor != 0 && line <= editor->limit.y );
+        ushort c = number;
+        if( shown && markOf( line ) != 0 )
+            c = markOf( line );
+        b.moveChar( 0, ' ', c, digits );
+        if( shown )
             {
-            int line = editor->delta.y + y + 1;
-            if( line <= editor->limit.y )
-                {
-                char s[16];
-                snprintf( s, sizeof( s ), "%*d", digits, line % 10000 );
-                b.moveStr( 0, s, number );
-                }
+            char s[16];
+            snprintf( s, sizeof( s ), "%*d", digits, line % 10000 );
+            b.moveStr( 0, s, c );
             }
         writeLine( 0, y, size.x, 1, b );
         }
