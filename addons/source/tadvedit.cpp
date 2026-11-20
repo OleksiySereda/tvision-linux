@@ -89,6 +89,11 @@ void TAdvancedEditor::showSelecting()
 
 void TAdvancedEditor::handleEvent( TEvent& event )
 {
+    // the indicator is told only when selecting changes: while the window
+    // shuts down, the editor still gets broadcasts after its indicator has
+    // been destroyed
+    Boolean wasSelecting = selecting;
+
     // keyState != 0: the second key after Ctrl+K or Ctrl+Q
     if( event.what == evKeyDown && keyState == 0 )
         {
@@ -139,7 +144,8 @@ void TAdvancedEditor::handleEvent( TEvent& event )
             }
 
     TFileEditor::handleEvent( event );
-    showSelecting();
+    if( selecting != wasSelecting )
+        showSelecting();
 }
 
 // TBlockIndicator
