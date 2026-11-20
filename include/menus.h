@@ -130,7 +130,7 @@ public:
 
 class TRect;
 class TMenu;
-class TEvent;
+struct TEvent;
 
 class TMenuView : public TView
 {
@@ -419,7 +419,7 @@ inline TStatusDef::TStatusDef( ushort aMin,
 #define __TStatusLine
 
 class TRect;
-class TEvent;
+struct TEvent;
 class TPoint;
 
 class TStatusLine : public TView

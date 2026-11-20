@@ -21,4 +21,7 @@ using std::dec;
 using std::hex;
 using std::setw;
 using std::setfill;
+using std::setiosflags;
+using std::resetiosflags;
+using std::setprecision;
 #endif

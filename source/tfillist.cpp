@@ -220,7 +220,7 @@ const unsigned findAttr = FA_RDONLY | FA_ARCH;
     while( res == 0 )                   // let the search close its handle
         res = findnext( &s );
 
-    if( !outOfMemory && strcmp( dir, "/" ) != 0 )
+    if( !outOfMemory && int( strlen( dir ) ) > rootLength( dir ) )
         {
         p = new DirSearchRec;
         if( p == 0 )
@@ -254,15 +254,25 @@ const unsigned findAttr = FA_RDONLY | FA_ARCH;
                     /[subdir/ ...]filename.ext
 
                 Linux port: "~/" is expanded to $HOME, "." and ".."
-                components are resolved, a trailing '/' is kept.
+                components are resolved, a trailing '/' is kept.  On
+                Windows the path starts with the drive, "C:/...", and
+                '\\' becomes '/'.
 */
 
 void squeeze( char *path )
 {
-    // path is absolute; resolve "//", "/./" and "/../"
+    // path is absolute; resolve "//", "/./" and "/../" after the drive
     char out[MAXPATH];
     size_t len = 0;
     const char *src = path;
+    if( rootLength( path ) > 1 )
+        {
+        out[0] = path[0];               // "C:"
+        out[1] = path[1];
+        len = 2;
+        src += 2;
+        }
+    size_t drive = len;
     while( *src != EOS )
         {
         while( *src == '/' )
@@ -275,9 +285,9 @@ void squeeze( char *path )
             ;
         else if( n == 2 && src[0] == '.' && src[1] == '.' )
             {
-            while( len > 0 && out[len-1] != '/' )
+            while( len > drive && out[len-1] != '/' )
                 len--;
-            if( len > 0 )
+            if( len > drive )
                 len--;
             }
         else if( len + n + 2 < sizeof( out ) )
@@ -288,7 +298,7 @@ void squeeze( char *path )
             }
         src += n;
         }
-    if( len == 0 || ( strlen( path ) > 0 && path[strlen( path ) - 1] == '/' ) )
+    if( len == drive || ( strlen( path ) > 0 && path[strlen( path ) - 1] == '/' ) )
         out[len++] = '/';
     out[len] = EOS;
     strcpy( path, out );
@@ -298,13 +308,21 @@ void fexpand( char *rpath )
 {
 char path[MAXPATH * 2];
 
+    const char *home = getenv( "HOME" );
+#if defined( _WIN32 )
+    for( char *s = rpath; *s; s++ )
+        if( *s == '\\' )
+            *s = '/';
+    if( home == 0 )
+        home = getenv( "USERPROFILE" );
+#endif
     if( rpath[0] == '~' && ( rpath[1] == '/' || rpath[1] == EOS ) &&
-        getenv( "HOME" ) != 0 )
+        home != 0 )
         {
-        snprintf( path, sizeof( path ), "%s/%s", getenv( "HOME" ),
+        snprintf( path, sizeof( path ), "%s/%s", home,
                   rpath + ( rpath[1] ? 2 : 1 ) );
         }
-    else if( rpath[0] != '/' )
+    else if( rootLength( rpath ) == 0 )
         {
         char cwd[MAXPATH];
         if( getcwd( cwd, sizeof( cwd ) ) == 0 )
@@ -314,6 +332,18 @@ char path[MAXPATH * 2];
     else
         strcpy( path, rpath );
     path[MAXPATH - 1] = EOS;
+#if defined( _WIN32 )
+    for( char *s = path; *s; s++ )
+        if( *s == '\\' )
+            *s = '/';
+    if( path[0] == '/' )
+        {
+        // "/dir": on the current drive
+        memmove( path + 2, path, strlen( path ) + 1 );
+        path[0] = char( 'A' + getdisk() );
+        path[1] = ':';
+        }
+#endif
     squeeze( path );
     strcpy( rpath, path );
 }

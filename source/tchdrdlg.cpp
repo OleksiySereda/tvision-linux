@@ -120,7 +120,7 @@ void TChDirDialog::handleEvent( TEvent& event )
                 }
             dirList->newDirectory( curDir );
             int len = strlen( curDir );
-            if( len > 1 && curDir[len-1] == '/' )
+            if( len > rootLength( curDir ) && curDir[len-1] == '/' )
                 curDir[len-1] = EOS;
             strcpy( dirInput->data, curDir );
             dirInput->drawView();
@@ -146,7 +146,7 @@ void TChDirDialog::setUpDialog()
         if( dirInput != 0 )
             {
             int len = strlen( curDir );
-            if( len > 1 && curDir[len-1] == '/' )
+            if( len > rootLength( curDir ) && curDir[len-1] == '/' )
                 curDir[len-1] = EOS;
             strcpy( dirInput->data, curDir );
             dirInput->drawView();
@@ -169,7 +169,7 @@ Boolean TChDirDialog::valid( ushort command )
     fexpand( path );
 
     int len = strlen( path );
-    if( len > 1 && path[len-1] == '/' )
+    if( len > rootLength( path ) && path[len-1] == '/' )
         path[len-1] = EOS;
 
     if( changeDir( path ) != 0 )

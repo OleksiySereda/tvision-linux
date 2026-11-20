@@ -96,12 +96,14 @@ void TDirListBox::showDirs( TDirCollection *dirs )
     char *org = name - strlen(pathDir);
     strcpy( org, pathDir );
 
-    // the root
-    strcpy( name, "/" );
+    // the root: "/", or "C:/" on Windows
+    int root = rootLength( dir ) > 0 ? rootLength( dir ) : 1;
+    strncpy( name, dir, size_t( root ) );
+    name[root] = EOS;
     dirs->insert( new TDirEntry( org, name ) );
 
     // each component of the current directory
-    char *curDir = dir + 1;
+    char *curDir = dir + root;
     char *end;
     while( (end = strchr( curDir, '/' )) != 0 )
         {

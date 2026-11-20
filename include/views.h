@@ -282,7 +282,7 @@ public:
 #define __TView
 
 class TRect;
-class TEvent;
+struct TEvent;
 class TGroup;
 
 class TView : public TObject, public TStreamable
@@ -476,7 +476,7 @@ inline void TView::writeLine( short x, short y, short w, short h,
 #define __TFrame
 
 class TRect;
-class TEvent;
+struct TEvent;
 class TDrawBuffer;
 
 class TFrame : public TView
@@ -543,7 +543,7 @@ inline opstream& operator << ( opstream& os, TFrame* cl )
 #define __TScrollBar
 
 class TRect;
-class TEvent;
+struct TEvent;
 
 typedef char TScrollChars[5];
 
@@ -625,7 +625,7 @@ inline opstream& operator << ( opstream& os, TScrollBar* cl )
 
 class TRect;
 class TScrollBar;
-class TEvent;
+struct TEvent;
 
 class TScroller : public TView
 {
@@ -693,7 +693,7 @@ inline opstream& operator << ( opstream& os, TScroller* cl )
 
 class TRect;
 class TScrollBar;
-class TEvent;
+struct TEvent;
 
 class TListViewer : public TView
 {
@@ -872,7 +872,7 @@ inline opstream& operator << ( opstream& os, TGroup* cl )
 class TFrame;
 class TRect;
 class TPoint;
-class TEvent;
+struct TEvent;
 class TFrame;
 class TScrollBar;
 

@@ -57,8 +57,8 @@ Boolean pathValid( const char *path )
     strcpy( expPath, path );
     fexpand( expPath );
     int len = strlen(expPath);
-    if( len <= 1 )
-        return True;                    // "/"
+    if( len <= rootLength( expPath ) )
+        return True;                    // "/", "C:/"
 
     if( expPath[len-1] == '/' )
         expPath[len-1] = EOS;

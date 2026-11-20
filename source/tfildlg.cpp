@@ -160,7 +160,7 @@ void TFileDialog::shutDown()
 
 static Boolean relativePath( const char *path )
 {
-    if( path[0] == '/' || path[0] == '~' )
+    if( rootLength( path ) > 0 || path[0] == '~' )
         return False;
     else
         return True;

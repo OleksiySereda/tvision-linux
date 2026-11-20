@@ -70,7 +70,7 @@ const int
 #define __TDialog
 
 class TRect;
-class TEvent;
+struct TEvent;
 
 class TDialog : public TWindow
 {
@@ -125,7 +125,7 @@ inline opstream& operator << ( opstream& os, TDialog* cl )
 #define __TInputLine
 
 class TRect;
-class TEvent;
+struct TEvent;
 
 class TInputLine : public TView
 {
@@ -208,7 +208,7 @@ inline opstream& operator << ( opstream& os, TInputLine* cl )
 #define __TButton
 
 class TRect;
-class TEvent;
+struct TEvent;
 class TDrawBuffer;
 
 class TButton : public TView
@@ -310,7 +310,7 @@ public:
 
 class TRect;
 class TSItem;
-class TEvent;
+struct TEvent;
 class TPoint;
 class TStringCollection;
 
@@ -696,7 +696,7 @@ inline opstream& operator << ( opstream& os, TParamText* cl )
 #define __TLabel
 
 class TRect;
-class TEvent;
+struct TEvent;
 class TView;
 
 class TLabel : public TStaticText
@@ -845,7 +845,7 @@ protected:
 
 class TRect;
 class TInputLine;
-class TEvent;
+struct TEvent;
 class THistoryWindow;
 
 class THistory : public TView

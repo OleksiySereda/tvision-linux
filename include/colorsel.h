@@ -81,7 +81,7 @@ public:
 #define __TColorSelector
 
 class TRect;
-class TEvent;
+struct TEvent;
 
 class TColorSelector : public TView
 {
@@ -138,7 +138,7 @@ inline opstream& operator << ( opstream& os, TColorSelector* cl )
 #define __TMonoSelector
 
 class TRect;
-class TEvent;
+struct TEvent;
 
 class TMonoSelector : public TCluster
 {
@@ -191,7 +191,7 @@ inline opstream& operator << ( opstream& os, TMonoSelector* cl )
 #define __TColorDisplay
 
 class TRect;
-class TEvent;
+struct TEvent;
 
 class TColorDisplay : public TView
 {
@@ -306,7 +306,7 @@ inline opstream& operator << ( opstream& os, TColorGroupList* cl )
 class TRect;
 class TScrollBar;
 class TColorItem;
-class TEvent;
+struct TEvent;
 
 class TColorItemList : public TListViewer
 {
@@ -358,7 +358,7 @@ inline opstream& operator << ( opstream& os, TColorItemList* cl )
 #define __TColorDialog
 
 class TColorGroup;
-class TEvent;
+struct TEvent;
 class TColorDisplay;
 class TColorGroupList;
 class TLabel;

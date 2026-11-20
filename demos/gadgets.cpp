@@ -61,7 +61,14 @@ void THeapView::update()
 long THeapView::heapSize()
 {
     // Linux port: bytes allocated from the heap (DOS showed free memory)
-#if defined( __GLIBC__ ) && ( __GLIBC__ > 2 || __GLIBC_MINOR__ >= 33 )
+#if defined( _WIN32 )
+    long total = 0;
+    _HEAPINFO h;
+    h._pentry = 0;
+    while( _heapwalk( &h ) == _HEAPOK )
+        if( h._useflag == _USEDENTRY )
+            total += long( h._size );
+#elif defined( __GLIBC__ ) && ( __GLIBC__ > 2 || __GLIBC_MINOR__ >= 33 )
     long total = long( mallinfo2().uordblks );
 #else
     long total = long( mallinfo().uordblks );

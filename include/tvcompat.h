@@ -65,6 +65,11 @@ int getdisk();
 int setdisk( int drive );
 int getcurdir( int drive, char *dir );
 
+// The length of the root an absolute path starts with, 0 for a relative
+// path: "/" on Linux; "C:/" (or "C:\") and "/" on Windows.  Inside the
+// library paths use '/' on both systems.
+int rootLength( const char *path );
+
 /* ---- dos.h ------------------------------------------------------------ */
 
 struct ftime
@@ -89,6 +94,8 @@ inline void setmem( void *dest, unsigned len, char value )
     memset( dest, value, len );
 }
 
+#if !defined( _WIN32 )
+// the Windows C runtime has these under the same names
 char *strupr( char *s );
 char *strlwr( char *s );
 int stricmp( const char *s1, const char *s2 );
@@ -96,10 +103,25 @@ int strnicmp( const char *s1, const char *s2, size_t n );
 char *itoa( int value, char *buf, int radix );
 char *ltoa( long value, char *buf, int radix );
 char *ultoa( unsigned long value, char *buf, int radix );
+#endif
 
 /* ---- stdlib.h: Borland random(n) / randomize() ----------------------- */
 
 #include <time.h>
+
+#if defined( _WIN32 )
+
+inline int random( int num )
+{
+    return num > 0 ? int( ::rand() % num ) : 0;
+}
+
+inline void randomize()
+{
+    srand( (unsigned)time( 0 ) );
+}
+
+#else
 
 inline int random( int num )
 {
@@ -111,8 +133,14 @@ inline void randomize()
     srandom( (unsigned)time( 0 ) );
 }
 
+#endif
+
 /* ---- io.h ------------------------------------------------------------- */
 
+#if defined( _WIN32 )
+#include <corecrt_io.h>         // filelength, with the runtime
+#else
 long filelength( int fd );
+#endif
 
 #endif  // __TVCOMPAT_H

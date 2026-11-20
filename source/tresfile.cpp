@@ -36,11 +36,12 @@ struct Count_type
 };
 
 // on-disk layout of the DOS version (byte packed, 32-bit long)
+#pragma pack( push, 1 )
 struct Info_type
 {
     ushort infoType;
     int32_t infoSize;
-} __attribute__(( packed ));
+};
 
 struct THeader
 {
@@ -49,8 +50,9 @@ struct THeader
         {
         Count_type count;
         Info_type info;
-        } __attribute__(( packed ));
-} __attribute__(( packed ));
+        };
+};
+#pragma pack( pop )
 
 const int diskLongSize = 4;
 
@@ -182,7 +184,7 @@ void TResourceFile::put(TStreamable *item, const char *key)
     p->pos =  indexPos;
     stream->seekp(basePos + indexPos, ios::beg);
     *stream << item;
-    indexPos = stream->tellp() - basePos;
+    indexPos = long( stream->tellp() ) - basePos;
     p->size  = indexPos - p->pos;
     modified = True;
 }

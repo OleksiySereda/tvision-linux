@@ -67,7 +67,7 @@ inline opstream& operator << ( opstream& os, TBackground* cl )
 
 class TBackground;
 class TRect;
-class TEvent;
+struct TEvent;
 
 class TDeskInit
 {
@@ -157,7 +157,7 @@ inline opstream& operator << ( opstream& os, TDeskTop* cl )
 class TStatusLine;
 class TMenuBar;
 class TDeskTop;
-class TEvent;
+struct TEvent;
 class TView;
 
 class TProgInit

@@ -176,6 +176,11 @@ void fnmerge( char *path, const char *, const char *dir,
 
 /* ---- drives / current directory -------------------------------------- */
 
+int rootLength( const char *path )
+{
+    return path[0] == '/' ? 1 : 0;
+}
+
 int getdisk()
 {
     return 0;

@@ -29,7 +29,10 @@ LDFLAGS  += -fsanitize=address,undefined
 endif
 
 LIB      := lib/libtv.a
-LIBSRC   := $(wildcard source/*.cpp) $(wildcard source/platform/*.cpp)
+# the terminal driver: the shared part and the POSIX one (source/platform/
+# win32/ is the Windows one, built with CMake: CMakeLists.txt)
+LIBSRC   := $(wildcard source/*.cpp) $(wildcard source/platform/*.cpp) \
+            $(wildcard source/platform/posix/*.cpp)
 LIBOBJ   := $(patsubst %.cpp,obj/%.o,$(LIBSRC))
 
 # whole-archive: every streamable class registers itself from a static

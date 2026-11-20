@@ -49,6 +49,31 @@ g++ -std=c++11 -Ipath/include -Ipath/include/compat app.cpp \
 `--whole-archive` is required because stream classes (`TStreamableClass`) are
 registered by static constructors, just as in the DOS version.
 
+### Windows
+
+The same sources build on Windows 10 and later with Visual Studio (MSVC,
+2022 or later) through CMake; only the terminal driver differs
+(`source/platform/win32/` instead of `source/platform/posix/`). The Makefile
+stays the way to build on Linux.
+
+```bat
+cmake -B build                          :: finds Visual Studio
+cmake --build build --config Release    :: lib/tv.lib, lib/tvaddons.lib, bin/*.exe
+ctest --test-dir build -C Release       :: the tests of the add-ons
+```
+
+Visual Studio can also open the directory as it is (File > Open > Folder).
+Link your own program with `/WHOLEARCHIVE:tv.lib` (the reason is the one
+above); `CMakeLists.txt` shows how. The programs run in Windows Terminal and
+in the console window (`cmd.exe`, PowerShell). On Windows:
+
+- the console gives the state of Shift, Ctrl and Alt with every key, so
+  Shift+arrows select in the editor in any console;
+- paths have drive letters: inside the library they are written with `/`
+  (`C:/Users/...`), which Windows takes; `\` typed in a dialog is accepted;
+- `long` is 4 bytes, as in DOS (8 on Linux): data files that a program
+  writes with `sizeof( long )` (the TVFORMS ones) differ between the two.
+
 ## Running
 
 ```sh
@@ -127,10 +152,15 @@ code-page byte. Characters missing from the code page are ignored.
   - `edits.cpp`: the editor's gap buffer;
   - inline asm in `drivers.cpp`, `teditor1.cpp` and `teditor2.cpp`.
 - **`source/platform/`:** a new layer replacing the BIOS (INT 10h/16h/33h):
-  - `terminal.cpp`: output;
-  - `input.cpp`: keyboard and mouse decoder;
+  - `screen.cpp`: output with escape sequences and UTF-8;
+  - `keys.cpp`: the key and mouse queues, BIOS key codes;
   - `codepage.cpp`: tables for 437, 866 and 1125;
-  - `compat.cpp`: `findfirst`, `fnsplit`, `strupr`, `itoa` etc. on top of POSIX.
+  - `posix/`: the terminal (termios, signals, size), the decoder of keyboard
+    and mouse escape sequences, and `findfirst`, `fnsplit`, `strupr`, `itoa`
+    etc. on top of POSIX;
+  - `win32/`: the same for the Windows console (console modes, key and mouse
+    events, `FindFirstFile`), built with CMake;
+  - `driver.h`: what the shared and the system parts give each other.
 - **`include/tvcompat.h`, `include/compat/*.h`:** replacements for `dos.h`, `dir.h`, `mem.h`, `iostream.h`, `strstrea.h` and other Borland headers.
 - **`TProgram::getEvent`:** handles resizing, flushes the screen and waits up to 30 ms for input instead of busy polling.
 - **`TEditor::drawLines`:** virtual, so that a derived editor can colour its text (used by `TColoredEditor`).
