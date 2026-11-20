@@ -120,8 +120,10 @@ the Shift/Ctrl/Alt state of the most recent key or mouse event; read it with
 <code>kbCtrlShift</code>, <code>kbAltShift</code>). A terminal reports modifiers only
 together with a key, so Shift on its own cannot be detected.</li>
 <li><b>Mouse.</b> Left and right buttons, dragging, double click
-(<code>TEventQueue::doubleDelay</code>) and auto repeat work. The wheel is ignored,
-as Turbo Vision 1.0 has no wheel events. The terminal draws the pointer, so
+(<code>TEventQueue::doubleDelay</code>) and auto repeat work. The wheel gives
+<code>evMouseWheel</code> events, a port addition (see
+<a href="#api">API differences</a>); views written for Turbo Vision 1.0 never see
+them. The terminal draws the pointer, so
 <code>TMouse::show()</code>/<code>hide()</code> do nothing. Holding Shift while
 clicking usually lets the terminal select text instead.</li>
 <li><b>Keys a terminal may not send.</b> Some terminals use Shift+PgUp, Ctrl+Ins,
@@ -192,6 +194,8 @@ Everything not listed behaves as documented by Borland.</p>
 <tr><td><code>TTextDevice</code>, <code>otstream</code></td><td>Old <code>streambuf</code> / <code>ostream</code></td><td><code>std::streambuf</code> / <code>std::ostream</code>; bulk output goes through <code>do_sputn()</code></td></tr>
 <tr><td><code>TParamText::setData()</code></td><td>The record is used as a <code>va_list</code></td><td>The format is interpreted by the library; each parameter is one <code>long</code>-sized slot (number or <code>char *</code>)</td></tr>
 <tr><td><code>TFileEditor</code></td><td>—</td><td>New members <code>dosLineEnds</code> and <code>utf8Text</code>; backup file <code>name.ext.bak</code> (was <code>name.BAK</code>)</td></tr>
+<tr><td><code>TEditor::drawLines()</code></td><td>Not virtual</td><td>Virtual, so a derived editor can colour its text. Code compiled against the old <code>editors.h</code> has to be rebuilt.</td></tr>
+<tr><td><code>evMouseWheel</code>, <code>mwUp</code>, <code>mwDown</code>, <code>mwLeft</code>, <code>mwRight</code></td><td>—</td><td>New: a wheel step (0x0020), the direction in <code>event.mouse.buttons</code>. Not part of <code>evMouse</code>; it is a positional event (<code>positionalEvents = evMouse | evMouseWheel</code>) and reaches only the view under the mouse, and only if its <code>eventMask</code> has <code>evMouseWheel</code>.</td></tr>
 <tr><td><code>maxViewWidth</code></td><td>132</td><td>1024</td></tr>
 <tr><td><code>maxCollectionSize</code></td><td>(64 KB − 16) / <code>sizeof(void*)</code></td><td><code>INT_MAX / sizeof(void*)</code></td></tr>
 <tr><td>Path functions in <code>util.h</code></td><td>Drive letters, <code>\</code>, upper case</td><td>See <a href="#files">Files and paths</a></td></tr>
@@ -459,13 +463,18 @@ contain similar ones.</p>
 <tr><td><code>getAltCode()</code></td><td>The Alt-Space test never matched with a signed <code>char</code>.</td></tr>
 <tr><td>TVHC</td><td><code>getWord()</code> and <code>replaceExt()</code> returned local buffers.</td></tr>
 <tr><td>TVG17B demo</td><td><code>phone[14]</code> was one byte too short for its data.</td></tr>
+<tr><td><code>TEditor::drawLines()</code>, <code>TListViewer</code>, <code>TInputLine</code>, <code>THelpViewer</code>, <code>TTerminal</code>, the TVDEMO file viewer</td><td>Line buffers of 256 cells overflowed in views wider than 256 columns (DOS screens had at most 132), and the editor showed garbage at its right edge.</td></tr>
 </table>
 <h2 id="limits">Known limitations</h2>
 <ul>
 <li>The editor handles files up to 64 KB, as in the original (positions are
 <code>ushort</code>).</li>
-<li>No mouse wheel; no BGI graphics (the TVBGI demo and TVGUID20/21 are not
-ported).</li>
+<li>No BGI graphics (the TVBGI demo and TVGUID20/21 are not ported).</li>
+<li>Of the library's own views, none uses the mouse wheel; in the add-ons,
+<code>TAdvancedEditor</code> does.</li>
+<li>Some terminals (PuTTY with its defaults) send Shift+arrows as plain arrows,
+so Shift selection does not work there; select with Ctrl+K B in any editor, or
+Ctrl+B in <code>TAdvancedEditor</code>.</li>
 <li>A character takes exactly one cell; characters outside the active code page cannot
 be shown or typed.</li>
 <li>Shift, Ctrl and Alt pressed alone are not visible to the program.</li>

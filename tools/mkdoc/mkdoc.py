@@ -302,17 +302,23 @@ example.</p></div>
 <div class="card"><h3><a href="porting.html">Porting guide</a></h3>
 <p>What differs from the original library, terminal behaviour and settings, and
 step-by-step instructions for moving DOS code to the port.</p></div>
+<div class="card"><h3><a href="classes.html#s-add-ons">Add-ons</a></h3>
+<p>New classes in their own library: <code>TAdvancedEditor</code> (Ctrl+C/X/V/A,
+Ctrl+B selection, mouse wheel), line numbers, and <code>TYamlEditor</code> with
+YAML syntax colouring.</p></div>
 </div>
 <h2>Quick start</h2>
 {code('''cd linux
-make                    # lib/libtv.a and the demos in bin/
-cd bin && ./tvdemo      # Alt-X quits''')}
+make                    # lib/libtv.a, lib/libtvaddons.a and the demos in bin/
+cd bin && ./tvdemo      # Alt-X quits
+./yamledit ../addons/demos/sample.yaml   # the YAML editor of the add-ons''')}
 <h2>What is included</h2>
 <table>
 <tr><th>Path</th><th>Contents</th></tr>
 <tr><td><code>include/</code></td><td>Library headers (<code>tv.h</code> and the class headers); <code>include/compat/</code> holds stand-ins for Borland headers such as <code>dos.h</code>, <code>dir.h</code>, <code>iostream.h</code>.</td></tr>
 <tr><td><code>source/</code></td><td>Library sources; <code>source/platform/</code> is the new terminal driver.</td></tr>
 <tr><td><code>demos/</code></td><td>TVDEMO, TVEDIT, TVFORMS (with the form generators), HELLO.</td></tr>
+<tr><td><code>addons/</code></td><td>New classes built on the library, in <code>lib/libtvaddons.a</code> with the header <code>tvaddons.h</code>: <code>TAdvancedEditor</code>, <code>TBlockIndicator</code>, <code>TLineNumbers</code>, <code>TYamlEditor</code>, <code>TYamlEditWindow</code>; the <code>yamledit</code> demo and tests (<code>make check-addons</code>).</td></tr>
 <tr><td><code>docdemos/</code></td><td>The examples from the Turbo Vision guide (TVGUID01–19, TVG17B).</td></tr>
 <tr><td><code>help/</code></td><td>TVHC, the help compiler, and the demo help source.</td></tr>
 <tr><td><code>tools/</code></td><td><code>keytest</code>, tmux test scripts, the converter used for the port, this documentation's generator.</td></tr>

@@ -664,7 +664,8 @@ section("Editors", "A gap-buffer text editor with selection, clipboard, undo, "
 ("TEditor", "editors.h", ["TView"], "Uses_TEditor",
  "The editor view. <code>editorDialog</code> is a hook for its dialogs "
  "(find, replace, errors); <code>clipboard</code> points to the editor used as "
- "clipboard.",
+ "clipboard. <b>Port note:</b> <code>drawLines()</code> is virtual, so a "
+ "derived editor can colour its text (see <a href=\"#TYamlEditor\">TYamlEditor</a>).",
 r'''TEditor *e = new TEditor( r, hScroll, vScroll, indicator, 4096 );
 e->insertText( "Hello\r\n", 7, False );     // the buffer uses CR LF
 TEditor::editorDialog = myEditorDialog;     // ushort f( int dialog, ... )'''),
@@ -698,6 +699,63 @@ TProgram::deskTop->insert( w );'''),
  "mark.",
 r'''TIndicator *ind = new TIndicator( TRect( 2, size.y - 1, 16, size.y ) );
 insert( ind );'''),
+])
+
+# --------------------------------------------------------------------------
+section("Add-ons", "New classes of the port, in <code>addons/</code>: a library of "
+        "their own, <code>lib/libtvaddons.a</code>. Include "
+        "<code>&lt;tvaddons.h&gt;</code> (with <code>-Iaddons/include</code>) after "
+        "the <code>Uses_</code> macros, and link "
+        "<code>-Wl,--whole-archive lib/libtvaddons.a lib/libtv.a "
+        "-Wl,--no-whole-archive</code>.", [
+
+("TAdvancedEditor", "advedit.h", ["TFileEditor"], "Uses_TAdvancedEditor",
+ "A <code>TFileEditor</code> with the keys of today's editors: Ctrl+C copy, "
+ "Ctrl+X cut, Ctrl+V paste, Ctrl+A select all (<code>cmSelectAll</code>). "
+ "Ctrl+B starts and ends selecting with the cursor keys alone, for terminals "
+ "that do not send Shift (<code>cmToggleSelect</code>). The mouse wheel scrolls "
+ "the text (<code>evMouseWheel</code>, <code>wheelLines</code>). "
+ "<code>clipboardKeys = False</code> gives Ctrl+C/X/V/A back to the WordStar "
+ "commands; <code>TEditor</code> itself is unchanged.",
+r'''#define Uses_TAdvancedEditor
+#include <tvaddons.h>
+
+TAdvancedEditor *ed = new TAdvancedEditor( r, hScroll, vScroll, indicator, "notes.txt" );
+ed->wheelLines = 5;             // lines per wheel step
+ed->clipboardKeys = False;      // the WordStar keys again'''),
+
+("TBlockIndicator", "advedit.h", ["TIndicator"], "Uses_TBlockIndicator",
+ "A <code>TIndicator</code> that shows <b>B</b> while Ctrl+B selecting is on. "
+ "Pass it to a <code>TAdvancedEditor</code> instead of a plain indicator.",
+r'''TBlockIndicator *ind = new TBlockIndicator( TRect( 2, size.y - 1, 16, size.y ) );
+insert( ind );
+TAdvancedEditor *ed = new TAdvancedEditor( r, 0, vScroll, ind, 0 );'''),
+
+("TLineNumbers", "advedit.h", ["TView"], "Uses_TLineNumbers",
+ "A column of line numbers left of a <code>TAdvancedEditor</code>: 4 digits "
+ "(white on gray, <code>numberColor</code>) and 2 blanks, so 6 wide. It follows "
+ "the editor's scrolling.",
+r'''TRect nr = r;  nr.b.x = r.a.x + 6;  r.a.x = nr.b.x;
+TAdvancedEditor *ed = new TAdvancedEditor( r, 0, vScroll, indicator, "prog.txt" );
+insert( new TLineNumbers( nr, ed ) );
+insert( ed );'''),
+
+("TYamlEditor", "yamledit.h", ["TAdvancedEditor"], "Uses_TYamlEditor",
+ "A <code>TAdvancedEditor</code> that colours YAML: keys, quoted strings, "
+ "numbers and true/false/null, comments, punctuation, anchors and tags, "
+ "document markers and block scalar text. It overrides "
+ "<code>drawLines()</code>; <code>highlight = False</code> turns the colours "
+ "off, <code>darkColors</code> / <code>lightColors</code> set them.",
+r'''TYamlEditor *ed = new TYamlEditor( r, hScroll, vScroll, indicator, "app.yaml" );
+ed->highlight = False;          // plain text again'''),
+
+("TYamlEditWindow", "yamledit.h", ["TEditWindow"], "Uses_TYamlEditWindow",
+ "A <code>TEditWindow</code> whose editor is a <code>TYamlEditor</code> and "
+ "whose indicator is a <code>TBlockIndicator</code>. "
+ "<code>bin/yamledit</code> is TVEDIT with these windows.",
+r'''TYamlEditWindow *w = new TYamlEditWindow( TProgram::deskTop->getExtent(),
+                                          "docker-compose.yaml", wnNoNumber );
+TProgram::deskTop->insert( TProgram::application->validView( w ) );'''),
 ])
 
 # --------------------------------------------------------------------------
