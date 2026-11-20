@@ -707,7 +707,11 @@ section("Add-ons", "New classes of the port, in <code>addons/</code>: a library 
         "<code>&lt;tvaddons.h&gt;</code> (with <code>-Iaddons/include</code>) after "
         "the <code>Uses_</code> macros, and link "
         "<code>-Wl,--whole-archive lib/libtvaddons.a lib/libtv.a "
-        "-Wl,--no-whole-archive</code>.", [
+        "-Wl,--no-whole-archive</code>. "
+        "<code>editdlg.h</code> (<code>Uses_TEditorDialogs</code>) adds "
+        "<code>editorDialogs()</code>, a complete <code>TEditor::editorDialog</code>: "
+        "Find, Replace, the replace prompt, Save?, Save as and the error messages "
+        "(<code>TEditor::editorDialog = editorDialogs; editorFileMask = \"*.yaml\";</code>).", [
 
 ("TAdvancedEditor", "advedit.h", ["TFileEditor"], "Uses_TAdvancedEditor",
  "A <code>TFileEditor</code> with the keys of today's editors: Ctrl+C copy, "
@@ -734,17 +738,39 @@ TAdvancedEditor *ed = new TAdvancedEditor( r, 0, vScroll, ind, 0 );'''),
 ("TLineNumbers", "advedit.h", ["TView"], "Uses_TLineNumbers",
  "A column of line numbers left of a <code>TAdvancedEditor</code>: 4 digits "
  "(white on gray, <code>numberColor</code>) and 2 blanks, so 6 wide. It follows "
- "the editor's scrolling.",
+ "the editor's scrolling. <code>setMark( line, color )</code> shows a line "
+ "number in a colour of its own (a breakpoint, an error, the line being run); "
+ "<code>clearMark()</code>, <code>clearMarks()</code>, <code>markOf()</code>. "
+ "Marks stay on their line numbers when the text changes; up to 64.",
 r'''TRect nr = r;  nr.b.x = r.a.x + 6;  r.a.x = nr.b.x;
 TAdvancedEditor *ed = new TAdvancedEditor( r, 0, vScroll, indicator, "prog.txt" );
-insert( new TLineNumbers( nr, ed ) );
-insert( ed );'''),
+TLineNumbers *numbers = new TLineNumbers( nr, ed );
+insert( numbers );
+insert( ed );
+numbers->setMark( 12, 0x4F );   // line 12: white on red'''),
 
-("TYamlEditor", "yamledit.h", ["TAdvancedEditor"], "Uses_TYamlEditor",
- "A <code>TAdvancedEditor</code> that colours YAML: keys, quoted strings, "
+("TColoredEditor", "colredit.h", ["TAdvancedEditor"], "Uses_TColoredEditor",
+ "The base of syntax colouring editors. A derived class gives "
+ "<code>scanLine()</code>, the class of each character of a line, and "
+ "<code>classColor()</code>, the colour of a class; <code>drawLines()</code> "
+ "colours the cells in the normal text colour and leaves the selection. "
+ "<code>highlight = False</code> turns the colours off. Not registered for "
+ "streams itself.",
+r'''class TNumberEditor : public TColoredEditor
+{
+public:
+    TNumberEditor( const TRect& r, TScrollBar *v ) : TColoredEditor( r, 0, v, 0, 0 ) {}
+    virtual void scanLine( ushort, const char *s, int n, uchar *cls )
+        { for( int k = 0; k < n; k++ ) cls[k] = s[k] >= '0' && s[k] <= '9'; }
+    virtual uchar classColor( uchar cls, uchar normal )
+        { return cls == 1 ? uchar( ( normal & 0xF0 ) | 0x0A ) : normal; }
+};'''),
+
+("TYamlEditor", "yamledit.h", ["TColoredEditor"], "Uses_TYamlEditor",
+ "A <code>TColoredEditor</code> that colours YAML: keys, quoted strings, "
  "numbers and true/false/null, comments, punctuation, anchors and tags, "
- "document markers and block scalar text. It overrides "
- "<code>drawLines()</code>; <code>highlight = False</code> turns the colours "
+ "document markers and block scalar text, through "
+ "<code>scanLine()</code> and <code>classColor()</code>; <code>highlight = False</code> turns the colours "
  "off, <code>darkColors</code> / <code>lightColors</code> set them.",
 r'''TYamlEditor *ed = new TYamlEditor( r, hScroll, vScroll, indicator, "app.yaml" );
 ed->highlight = False;          // plain text again'''),

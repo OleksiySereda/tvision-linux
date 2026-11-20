@@ -304,8 +304,9 @@ example.</p></div>
 step-by-step instructions for moving DOS code to the port.</p></div>
 <div class="card"><h3><a href="classes.html#s-add-ons">Add-ons</a></h3>
 <p>New classes in their own library: <code>TAdvancedEditor</code> (Ctrl+C/X/V/A,
-Ctrl+B selection, mouse wheel), line numbers, and <code>TYamlEditor</code> with
-YAML syntax colouring.</p></div>
+Ctrl+B selection, mouse wheel), line numbers with marks,
+<code>TColoredEditor</code> for syntax colouring, <code>TYamlEditor</code>, and the
+editor dialogs (Find, Replace, Save as).</p></div>
 </div>
 <h2>Quick start</h2>
 {code('''cd linux
@@ -318,7 +319,7 @@ cd bin && ./tvdemo      # Alt-X quits
 <tr><td><code>include/</code></td><td>Library headers (<code>tv.h</code> and the class headers); <code>include/compat/</code> holds stand-ins for Borland headers such as <code>dos.h</code>, <code>dir.h</code>, <code>iostream.h</code>.</td></tr>
 <tr><td><code>source/</code></td><td>Library sources; <code>source/platform/</code> is the new terminal driver.</td></tr>
 <tr><td><code>demos/</code></td><td>TVDEMO, TVEDIT, TVFORMS (with the form generators), HELLO.</td></tr>
-<tr><td><code>addons/</code></td><td>New classes built on the library, in <code>lib/libtvaddons.a</code> with the header <code>tvaddons.h</code>: <code>TAdvancedEditor</code>, <code>TBlockIndicator</code>, <code>TLineNumbers</code>, <code>TYamlEditor</code>, <code>TYamlEditWindow</code>; the <code>yamledit</code> demo and tests (<code>make check-addons</code>).</td></tr>
+<tr><td><code>addons/</code></td><td>New classes built on the library, in <code>lib/libtvaddons.a</code> with the header <code>tvaddons.h</code>: <code>TAdvancedEditor</code>, <code>TBlockIndicator</code>, <code>TLineNumbers</code>, <code>TColoredEditor</code>, <code>TYamlEditor</code>, <code>TYamlEditWindow</code>, <code>editorDialogs()</code>; the <code>yamledit</code> demo and tests (<code>make check-addons</code>).</td></tr>
 <tr><td><code>docdemos/</code></td><td>The examples from the Turbo Vision guide (TVGUID01–19, TVG17B).</td></tr>
 <tr><td><code>help/</code></td><td>TVHC, the help compiler, and the demo help source.</td></tr>
 <tr><td><code>tools/</code></td><td><code>keytest</code>, tmux test scripts, the converter used for the port, this documentation's generator.</td></tr>
