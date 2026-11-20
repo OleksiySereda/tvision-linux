@@ -25,8 +25,10 @@
 /*   TBlockIndicator is a TIndicator that shows "B" while Ctrl+B           */
 /*   selecting is on.                                                      */
 /*                                                                         */
-/*   Include through tvaddons.h with Uses_TAdvancedEditor or               */
-/*   Uses_TBlockIndicator.                                                 */
+/*   TLineNumbers shows the line numbers left of a TAdvancedEditor.        */
+/*                                                                         */
+/*   Include through tvaddons.h with Uses_TAdvancedEditor,                 */
+/*   Uses_TBlockIndicator or Uses_TLineNumbers.                            */
 /*                                                                         */
 /* ------------------------------------------------------------------------*/
 
@@ -95,6 +97,7 @@ inline opstream& operator << ( opstream& os, TBlockIndicator* cl )
 class TRect;
 class TScrollBar;
 class TIndicator;
+class TLineNumbers;
 struct TEvent;
 
 class TAdvancedEditor : public TFileEditor
@@ -122,6 +125,11 @@ public:
     // cursor and the selection do not move.
     virtual void wheel( uchar direction );
     int wheelLines;
+
+    // redraws the line numbers too (see TLineNumbers)
+    virtual void draw();
+    virtual void shutDown();
+    TLineNumbers *lineNumbers;          // set by TLineNumbers, else 0
 
 private:
 
@@ -153,3 +161,34 @@ inline opstream& operator << ( opstream& os, TAdvancedEditor* cl )
     { return os << (TStreamable *)cl; }
 
 #endif  // Uses_TAdvancedEditor
+
+
+#if defined( Uses_TLineNumbers ) && !defined( __TLineNumbers )
+#define __TLineNumbers
+
+class TRect;
+class TAdvancedEditor;
+
+// The numbers of the lines an editor shows, in a column of their own left
+// of it: 4 digits (white on gray) and 2 blanks, so 6 wide.  Put it next to
+// the editor, at the same height; it follows the editor's scrolling.
+class TLineNumbers : public TView
+{
+
+public:
+
+    TLineNumbers( const TRect&, TAdvancedEditor *anEditor );
+
+    virtual void draw();
+    virtual void shutDown();
+
+    // the colour of the digits; the 2 blanks take the editor's
+    static uchar numberColor;
+
+private:
+
+    friend class TAdvancedEditor;       // forgets editor when it shuts down
+    TAdvancedEditor *editor;
+};
+
+#endif  // Uses_TLineNumbers

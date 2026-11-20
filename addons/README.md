@@ -89,6 +89,20 @@ WordStar keys **Ctrl+K B** (start) and **Ctrl+K H** (end and hide).
   overridden. The wheel comes as `evMouseWheel`, an event of this port
   (see `include/system.h`).
 
+### Line numbers: TLineNumbers
+
+A `TLineNumbers` is a column of its own left of a `TAdvancedEditor`: the
+number of each line on 4 digits (white on gray, `TLineNumbers::numberColor`)
+and 2 blanks. It follows the editor's scrolling and the number of lines.
+
+```cpp
+#define Uses_TLineNumbers
+TRect nr = r;  nr.b.x = r.a.x + 6;  r.a.x = nr.b.x;  // 6 columns for the numbers
+TAdvancedEditor *ed = new TAdvancedEditor( r, 0, vScrollBar, indicator, "prog.txt" );
+insert( new TLineNumbers( nr, ed ) );
+insert( ed );
+```
+
 ## TYamlEditor, TYamlEditWindow
 
 `TYamlEditor` is a `TAdvancedEditor` that colours YAML. Editing, files, the

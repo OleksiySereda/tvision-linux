@@ -14,6 +14,9 @@
 
 #define Uses_TAdvancedEditor
 #define Uses_TBlockIndicator
+#define Uses_TLineNumbers
+#define Uses_TDrawBuffer
+#define Uses_TProgram
 #define Uses_TEvent
 #define Uses_TKeys
 #define Uses_TEventQueue
@@ -22,6 +25,8 @@
 #define Uses_ipstream
 #include <tvaddons.h>
 
+#include <stdio.h>
+
 TAdvancedEditor::TAdvancedEditor( const TRect& bounds,
                                   TScrollBar *aHScrollBar,
                                   TScrollBar *aVScrollBar,
@@ -29,7 +34,8 @@ TAdvancedEditor::TAdvancedEditor( const TRect& bounds,
                                   const char *aFileName ) :
     TFileEditor( bounds, aHScrollBar, aVScrollBar, aIndicator, aFileName ),
     clipboardKeys( True ),
-    wheelLines( 3 )
+    wheelLines( 3 ),
+    lineNumbers( 0 )
 {
     eventMask |= evMouseWheel;
 }
@@ -38,8 +44,73 @@ TAdvancedEditor::TAdvancedEditor( const TRect& bounds,
 TAdvancedEditor::TAdvancedEditor( StreamableInit ) :
     TFileEditor( streamableInit ),
     clipboardKeys( True ),
-    wheelLines( 3 )
+    wheelLines( 3 ),
+    lineNumbers( 0 )
 {
+}
+
+// every scroll and every change of the number of lines redraws the whole
+// editor, so the numbers are redrawn with it
+void TAdvancedEditor::draw()
+{
+    TFileEditor::draw();
+    if( lineNumbers != 0 )
+        lineNumbers->drawView();
+}
+
+void TAdvancedEditor::shutDown()
+{
+    if( lineNumbers != 0 )
+        lineNumbers->editor = 0;
+    lineNumbers = 0;
+    TFileEditor::shutDown();
+}
+
+// TLineNumbers
+
+uchar TLineNumbers::numberColor = 0x7F;     // bright white on light gray
+
+TLineNumbers::TLineNumbers( const TRect& bounds, TAdvancedEditor *anEditor ) :
+    TView( bounds ),
+    editor( anEditor )
+{
+    growMode = gfGrowHiY;
+    if( editor != 0 )
+        editor->lineNumbers = this;
+}
+
+void TLineNumbers::shutDown()
+{
+    if( editor != 0 && editor->lineNumbers == this )
+        editor->lineNumbers = 0;
+    editor = 0;
+    TView::shutDown();
+}
+
+void TLineNumbers::draw()
+{
+    ushort blank = editor != 0 ? uchar( editor->getColor( 1 ) ) : uchar( getColor( 1 ) );
+    ushort number = numberColor;
+    if( TProgram::appPalette != apColor && editor != 0 )
+        number = uchar( editor->getColor( 2 ) );        // the selection colour
+    for( int y = 0; y < size.y; y++ )
+        {
+        TDrawBuffer b;
+        b.moveChar( 0, ' ', blank, size.x );
+        int digits = size.x > 2 ? size.x - 2 : size.x;
+        b.moveChar( 0, ' ', number, digits );
+        if( editor != 0 )
+            {
+            int line = editor->delta.y + y + 1;
+            if( line <= editor->limit.y )
+                {
+                char s[16];
+                snprintf( s, sizeof( s ), "%*d", digits, line % 10000 );
+                b.moveStr( 0, s, number );
+                }
+            }
+        writeLine( 0, y, size.x, 1, b );
+        }
 }
 
 // the text moves, the cursor and the selection stay where they are

@@ -33,6 +33,10 @@
 #define Uses_TIndicator
 #endif
 
+#if defined( Uses_TLineNumbers )
+#define Uses_TView
+#endif
+
 #include <tv.h>
 
 // the class declarations are selected inside by the Uses_ macros;
