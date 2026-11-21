@@ -14,6 +14,7 @@
 <h4>Contents</h4><ul>
 <li><a href="#glance">At a glance</a></li>
 <li><a href="#build">Building and linking</a></li>
+<li><a href="#windows">Building on Windows</a></li>
 <li><a href="#terminal">Running in a terminal</a></li>
 <li><a href="#keyboard">Keyboard and mouse</a></li>
 <li><a href="#codepage">Character set and code pages</a></li>
@@ -48,6 +49,7 @@ Borland compiler or on 16-bit sizes. The table summarizes what changed underneat
 <tr><td>Text files</td><td>CR LF</td><td>LF (the editor converts both ways)</td></tr>
 <tr><td>Iostreams</td><td>Pre-standard <code>iostream.h</code></td><td>Standard <code>&lt;iostream&gt;</code>; compatibility headers keep the old names</td></tr>
 <tr><td>Critical errors, Ctrl-Break</td><td>INT 24h / 1Bh / 23h handlers</td><td>None; Ctrl-C is an ordinary key</td></tr>
+<tr><td>Other systems</td><td>—</td><td>Windows 10 and later with MSVC, from the same sources (<a href="#windows">Building on Windows</a>)</td></tr>
 </table>
 <h2 id="build">Building and linking</h2>
 <p>Requirements: <code>g++</code> with C++11 support (tested with GCC 13 and 15) and
@@ -79,6 +81,37 @@ unchanged. They all map to <code>tvcompat.h</code> and the standard library.</p>
 <p>The library replaces the global <code>operator new</code>/<code>delete</code> (and
 their array forms), as the original did, to keep the TV safety pool working. Do not
 replace them again in your program.</p>
+<h2 id="windows">Building on Windows</h2>
+<p>The same sources build on Windows 10 and later with Visual Studio 2022 or
+later (MSVC) through CMake. Only the terminal driver differs: the library is
+compiled with <code>source/platform/win32/</code> instead of
+<code>source/platform/posix/</code>. Linux keeps the Makefile;
+<code>CMakeLists.txt</code> is for Windows only.</p>
+<pre><code>cmake -B build                          # finds Visual Studio
+cmake --build build --config Release    # lib/tv.lib, lib/tvaddons.lib, bin/*.exe
+ctest --test-dir build -C Release       # the tests of the add-ons</code></pre>
+<p>Visual Studio also opens the directory as it is (File &gt; Open &gt; Folder).
+Another project uses the libraries through <code>add_subdirectory</code>; the
+targets <code>tv</code> and <code>tvaddons</code> bring their include
+directories, compiler options and <code>/WHOLEARCHIVE</code> (the Windows form of
+<code>--whole-archive</code>) with them:</p>
+<pre><code>add_subdirectory( path/to/linux tvision EXCLUDE_FROM_ALL )
+tv_addons_program( myapp myapp.cpp )         # or: tv_program( myapp myapp.cpp )
+# or: add_executable( myapp myapp.cpp )  target_link_libraries( myapp PRIVATE tvaddons )</code></pre>
+<p>The programs run in Windows Terminal and in the console window
+(<code>cmd.exe</code>, PowerShell). What differs from Linux:</p>
+<table>
+<tr><th>Area</th><th>Windows</th></tr>
+<tr><td>Screen</td><td>The same escape sequences and UTF-8 as on Linux: the console takes them once <code>ENABLE_VIRTUAL_TERMINAL_PROCESSING</code> is set (Windows 10 and later). The size is that of the visible window; a new size is noticed by comparing it.</td></tr>
+<tr><td>Keyboard</td><td>Key events of the console (<code>ReadConsoleInput</code>), turned into the same <code>kb...</code> codes. The console gives the state of Shift, Ctrl and Alt with every key, so Shift+arrows select in the editor in any console. AltGr characters are typed as characters. Ctrl+C is a key; Ctrl+Break and closing the window end the program with the console restored.</td></tr>
+<tr><td>Mouse</td><td>Mouse events of the console: buttons, position, the wheel (<code>evMouseWheel</code>, also sideways). Quick-edit selection is turned off while the program runs.</td></tr>
+<tr><td>Redirected stdin / stdout</td><td>The driver opens the console itself (<code>CONIN$</code>, <code>CONOUT$</code>), as Linux would open <code>/dev/tty</code>.</td></tr>
+<tr><td>Paths</td><td>Inside the library paths are written with <code>/</code> and start with the drive: <code>C:/Users/...</code>, which Windows takes. <code>\</code> typed in a dialog is accepted. See <a href="#files">Files and paths</a>.</td></tr>
+<tr><td><code>long</code></td><td>4 bytes, as in DOS (8 on Linux). Records written with <code>sizeof( long )</code>, such as the TVFORMS data files, differ between the two systems.</td></tr>
+<tr><td>POSIX functions</td><td><code>include/compat/win32/unistd.h</code> supplies those the library and typical programs use: <code>getcwd</code> (with <code>/</code>), <code>access</code>, <code>chdir</code>, <code>isatty</code>, <code>fsync</code>, <code>ssize_t</code>, <code>PATH_MAX</code>, <code>S_ISDIR</code> and the like.</td></tr>
+</table>
+<div class="note">The help files (<code>tvhc</code>) and the object streams are
+byte-for-byte the same as on Linux and DOS.</div>
 <h2 id="terminal">Running in a terminal</h2>
 <p>Any xterm-compatible terminal works: xterm, GNOME Terminal, Konsole, Windows
 Terminal, PuTTY, iTerm2, tmux and screen, and the Linux console. Over ssh nothing
@@ -118,7 +151,8 @@ sequences.</p>
 the Shift/Ctrl/Alt state of the most recent key or mouse event; read it with
 <code>TEventQueue::getShiftState()</code> (bits <code>kbLeftShift</code>,
 <code>kbCtrlShift</code>, <code>kbAltShift</code>). A terminal reports modifiers only
-together with a key, so Shift on its own cannot be detected.</li>
+together with a key, so Shift on its own cannot be detected. (The Windows
+console reports the modifiers with every key and mouse event.)</li>
 <li><b>Mouse.</b> Left and right buttons, dragging, double click
 (<code>TEventQueue::doubleDelay</code>) and auto repeat work. The wheel gives
 <code>evMouseWheel</code> events, a port addition (see
@@ -201,7 +235,11 @@ Everything not listed behaves as documented by Borland.</p>
 <tr><td>Path functions in <code>util.h</code></td><td>Drive letters, <code>\</code>, upper case</td><td>See <a href="#files">Files and paths</a></td></tr>
 </table>
 <h2 id="files">Files and paths</h2>
-<p>The file dialogs and path helpers work with Unix paths.</p>
+<p>The file dialogs and path helpers work with Unix paths. On Windows they
+work with the same paths after a drive: <code>C:/dir/file</code>. The root of an
+absolute path is <code>/</code> on Linux and <code>C:/</code> (or <code>/</code>,
+the current drive) on Windows; <code>rootLength()</code> in
+<code>tvcompat.h</code> gives its length, 0 for a relative path.</p>
 <table>
 <tr><th>Function / class</th><th>Behaviour in the port</th></tr>
 <tr><td><code>fexpand()</code></td><td>Makes an absolute path: prepends the current directory, expands <code>~/</code>, resolves <code>.</code>, <code>..</code> and <code>//</code>, keeps a trailing <code>/</code>. Does not change the case.</td></tr>
@@ -210,7 +248,7 @@ Everything not listed behaves as documented by Borland.</p>
 <tr><td><code>validFileName()</code></td><td>Accepts any name in an existing directory (no DOS character restrictions).</td></tr>
 <tr><td><code>driveValid()</code></td><td>Always <code>True</code>.</td></tr>
 <tr><td><code>TFileDialog</code></td><td><code>*.*</code> matches every file; typing a name without extension keeps it as it is when the file exists or the wildcard extension is a pattern; directories are shown as <code>name/</code>.</td></tr>
-<tr><td><code>TChDirDialog</code>, <code>TDirListBox</code></td><td>The tree starts at <code>/</code>; there is no “Drives” entry; subdirectories are sorted.</td></tr>
+<tr><td><code>TChDirDialog</code>, <code>TDirListBox</code></td><td>The tree starts at <code>/</code> (<code>C:/</code> on Windows); there is no “Drives” entry; subdirectories are sorted.</td></tr>
 <tr><td><code>TFileEditor</code></td><td>LF files: converted to CR LF on load, saved with LF. CR LF files: saved with CR LF. UTF-8 handling: see <a href="#codepage">code pages</a>.</td></tr>
 </table>
 <p><code>tvcompat.h</code> (included by <code>tv.h</code>, or via the
@@ -218,11 +256,11 @@ Everything not listed behaves as documented by Borland.</p>
 run-time functions that the library and typical TV programs use:</p>
 <table>
 <tr><th>Function</th><th>Implementation</th></tr>
-<tr><td><code>findfirst()</code>, <code>findnext()</code>, <code>struct ffblk</code></td><td><code>opendir</code>/<code>readdir</code>/<code>stat</code>/<code>fnmatch</code>. <code>"*.*"</code> means <code>"*"</code>; <code>.</code> is skipped; dot-files count as hidden (<code>FA_HIDDEN</code>); <code>ff_ftime</code>/<code>ff_fdate</code> are DOS packed values; the search must run until it fails, which closes the directory.</td></tr>
+<tr><td><code>findfirst()</code>, <code>findnext()</code>, <code>struct ffblk</code></td><td><code>opendir</code>/<code>readdir</code>/<code>stat</code>/<code>fnmatch</code> (<code>FindFirstFile</code> on Windows). <code>"*.*"</code> means <code>"*"</code>; <code>.</code> is skipped; dot-files count as hidden (<code>FA_HIDDEN</code>); <code>ff_ftime</code>/<code>ff_fdate</code> are DOS packed values; the search must run until it fails, which closes the directory.</td></tr>
 <tr><td><code>fnsplit()</code>, <code>fnmerge()</code></td><td>Unix paths; the drive is always empty; <code>.profile</code> has no extension.</td></tr>
-<tr><td><code>getdisk()</code>, <code>setdisk()</code>, <code>getcurdir()</code></td><td>Always drive 0; <code>getcurdir()</code> returns the working directory without the leading <code>/</code>.</td></tr>
+<tr><td><code>getdisk()</code>, <code>setdisk()</code>, <code>getcurdir()</code></td><td>Always drive 0; <code>getcurdir()</code> returns the working directory without the leading <code>/</code>. On Windows they work with the drives, as in DOS.</td></tr>
 <tr><td><code>MAXPATH</code>, <code>MAXDIR</code>, <code>MAXFILE</code>, <code>MAXEXT</code></td><td>512, 512, 256, 256</td></tr>
-<tr><td><code>strupr()</code>, <code>strlwr()</code>, <code>stricmp()</code>, <code>strnicmp()</code></td><td>Via <code>toupper</code>/<code>strcasecmp</code></td></tr>
+<tr><td><code>strupr()</code>, <code>strlwr()</code>, <code>stricmp()</code>, <code>strnicmp()</code></td><td>Via <code>toupper</code>/<code>strcasecmp</code>; on Windows those of the C runtime</td></tr>
 <tr><td><code>itoa()</code>, <code>ltoa()</code>, <code>ultoa()</code></td><td>Any radix 2–36</td></tr>
 <tr><td><code>movmem()</code>, <code>setmem()</code></td><td><code>memmove</code>, <code>memset</code></td></tr>
 <tr><td><code>random(n)</code>, <code>randomize()</code></td><td><code>random() % n</code>, <code>srandom(time(0))</code></td></tr>
@@ -474,7 +512,7 @@ contain similar ones.</p>
 <code>TAdvancedEditor</code> does.</li>
 <li>Some terminals (PuTTY with its defaults) send Shift+arrows as plain arrows,
 so Shift selection does not work there; select with Ctrl+K B in any editor, or
-Ctrl+B in <code>TAdvancedEditor</code>.</li>
+Ctrl+B in <code>TAdvancedEditor</code>. The Windows console does not have this problem.</li>
 <li>A character takes exactly one cell; characters outside the active code page cannot
 be shown or typed.</li>
 <li>Shift, Ctrl and Alt pressed alone are not visible to the program.</li>

@@ -293,7 +293,8 @@ def index_page():
     body = f"""<h1>Turbo Vision for Linux</h1>
 <p class="lead">Borland Turbo Vision 1.0 for C++, ported from Borland C++ 3.1 / DOS
 to GCC and C++11. Programs run full-screen in any xterm-compatible terminal,
-including over ssh, and follow the size of the terminal window.</p>
+including over ssh, and follow the size of the terminal window. The same sources
+also build on Windows with Visual Studio.</p>
 <div class="cards">
 <div class="card"><h3><a href="classes.html">Class reference</a></h3>
 <p>The class hierarchy and all {count} classes by area — views, menus, dialogs,
@@ -309,20 +310,28 @@ Ctrl+B selection, mouse wheel), line numbers with marks,
 editor dialogs (Find, Replace, Save as).</p></div>
 </div>
 <h2>Quick start</h2>
+<p>Linux, with g++ and GNU make:</p>
 {code('''cd linux
 make                    # lib/libtv.a, lib/libtvaddons.a and the demos in bin/
 cd bin && ./tvdemo      # Alt-X quits
 ./yamledit ../addons/demos/sample.yaml   # the YAML editor of the add-ons''')}
+<p>Windows 10 or later, with Visual Studio 2022 or later (see
+<a href="porting.html#windows">Building on Windows</a>):</p>
+{code('''cd linux
+cmake -B build
+cmake --build build --config Release    # lib/tv.lib, lib/tvaddons.lib, bin/*.exe
+bin/tvdemo.exe''')}
 <h2>What is included</h2>
 <table>
 <tr><th>Path</th><th>Contents</th></tr>
 <tr><td><code>include/</code></td><td>Library headers (<code>tv.h</code> and the class headers); <code>include/compat/</code> holds stand-ins for Borland headers such as <code>dos.h</code>, <code>dir.h</code>, <code>iostream.h</code>.</td></tr>
-<tr><td><code>source/</code></td><td>Library sources; <code>source/platform/</code> is the new terminal driver.</td></tr>
+<tr><td><code>source/</code></td><td>Library sources; <code>source/platform/</code> is the new terminal driver: the shared part (screen output, key codes, code pages), <code>posix/</code> for Linux and <code>win32/</code> for the Windows console.</td></tr>
 <tr><td><code>demos/</code></td><td>TVDEMO, TVEDIT, TVFORMS (with the form generators), HELLO.</td></tr>
 <tr><td><code>addons/</code></td><td>New classes built on the library, in <code>lib/libtvaddons.a</code> with the header <code>tvaddons.h</code>: <code>TAdvancedEditor</code>, <code>TBlockIndicator</code>, <code>TLineNumbers</code>, <code>TColoredEditor</code>, <code>TYamlEditor</code>, <code>TYamlEditWindow</code>, <code>editorDialogs()</code>; the <code>yamledit</code> demo and tests (<code>make check-addons</code>).</td></tr>
 <tr><td><code>docdemos/</code></td><td>The examples from the Turbo Vision guide (TVGUID01–19, TVG17B).</td></tr>
 <tr><td><code>help/</code></td><td>TVHC, the help compiler, and the demo help source.</td></tr>
 <tr><td><code>tools/</code></td><td><code>keytest</code>, tmux test scripts, the converter used for the port, this documentation's generator.</td></tr>
+<tr><td><code>Makefile</code>, <code>CMakeLists.txt</code></td><td>The build: make on Linux, CMake with Visual Studio on Windows.</td></tr>
 </table>
 """
     return page("Turbo Vision for Linux", nav, body)

@@ -124,8 +124,11 @@ endforeach()
 
 # ---- the tests -------------------------------------------------------------
 
-enable_testing()
 tv_addons_program( yamlsyntax-test addons/tests/yamlsyntax_test.cpp )
 tv_addons_program( advedit-test addons/tests/advedit_test.cpp )
-add_test( NAME yamlsyntax COMMAND yamlsyntax-test )
-add_test( NAME advedit COMMAND advedit-test )
+# only when this is the project being built, not under add_subdirectory()
+if( CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR )
+    enable_testing()
+    add_test( NAME yamlsyntax COMMAND yamlsyntax-test )
+    add_test( NAME advedit COMMAND advedit-test )
+endif()
