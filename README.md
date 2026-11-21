@@ -194,7 +194,9 @@ code-page byte. Characters missing from the code page are ignored.
   - `TSortedListBox::list()` and other casts through an incomplete type became a `reinterpret_cast` without the virtual-base adjustment;
   - uninitialised `TResourceFile::modified`;
   - `getWord`/`replaceExt` in TVHC returned addresses of local buffers;
-  - `new[]`/`delete[]` in `new.cpp`.
+  - `new[]`/`delete[]` in `new.cpp`, and the `nothrow` forms of `new` and
+    `delete` (the standard library uses them, e.g. `std::stable_sort`),
+    which return 0 when memory runs out (without giving up the safety pool).
 
 ## Tests
 

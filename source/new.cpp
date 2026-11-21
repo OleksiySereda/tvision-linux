@@ -29,6 +29,8 @@
 #define Uses_TVMemMgr
 #include <tv.h>
 
+#include <new>
+
 TBufListEntry * TBufListEntry::bufList = 0;
 
 TBufListEntry::TBufListEntry( void*& o ) : owner( o )
@@ -159,6 +161,25 @@ void *operator new( size_t sz )
     return (char *)temp + BLK_SIZE;
 }
 
+// Linux port: the nothrow form, for the standard library (the buffer of
+// std::stable_sort, for one), which frees it with the plain delete.  It
+// takes the memory the same way but returns 0 when there is none: its
+// callers do with less, so neither the discardable buffers nor the
+// safety pool are given up for it.
+void *operator new( size_t sz, const std::nothrow_t& ) noexcept
+{
+    sz += BLK_SIZE;
+    if( sz == 0 )
+        sz = 1;
+    void *temp = malloc( sz );
+    if( temp == 0 )
+        return 0;
+#if defined( TV_DEBUG_HEAP )
+    memset( temp, BLK_DATA, BLK_SIZE );
+#endif
+    return (char *)temp + BLK_SIZE;
+}
+
 #if defined( TV_DEBUG_HEAP )
 static void check( void *blk )
 {
@@ -167,13 +188,32 @@ static void check( void *blk )
 }
 #endif
 
-// Linux port: the array forms must use the same allocator
+// Linux port: the array and nothrow forms must use the same allocator.
+// The standard library allocates through the nothrow forms itself (the
+// buffer of std::stable_sort, for one) and frees with the plain delete;
+// AddressSanitizer replaces every form it is not given, which then
+// reported a mismatch.
 void *operator new[]( size_t sz )
 {
     return operator new( sz );
 }
 
 void operator delete[]( void *blk ) noexcept
+{
+    operator delete( blk );
+}
+
+void *operator new[]( size_t sz, const std::nothrow_t& ) noexcept
+{
+    return operator new( sz, std::nothrow );
+}
+
+void operator delete( void *blk, const std::nothrow_t& ) noexcept
+{
+    operator delete( blk );
+}
+
+void operator delete[]( void *blk, const std::nothrow_t& ) noexcept
 {
     operator delete( blk );
 }

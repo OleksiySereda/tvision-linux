@@ -67,8 +67,10 @@ then fails. The DOS version solved this with <code>__link()</code>, which still 
 <code>strstream.h</code>), so most existing <code>#include</code> lines compile
 unchanged. They all map to <code>tvcompat.h</code> and the standard library.</p>
 <p>The library replaces the global <code>operator new</code>/<code>delete</code> (and
-their array forms), as the original did, to keep the TV safety pool working. Do not
-replace them again in your program.</p>"""))
+their array and <code>std::nothrow</code> forms), as the original did, to keep the TV
+safety pool working. Do not replace them again in your program. When memory runs
+out, the plain <code>new</code> aborts as in the original; the
+<code>nothrow</code> forms return 0 and leave the safety pool alone.</p>"""))
 
 # --------------------------------------------------------------------------
 part("windows", "Building on Windows",
@@ -514,7 +516,7 @@ contain similar ones.</p>
 <tr><td><code>TFileInfoPane::draw()</code></td><td>Changed the time stored in the file record while drawing it (AM/PM lost after a redraw).</td></tr>
 <tr><td><code>TDrawBuffer::moveBuf()</code></td><td>With <code>attr == 0</code>, wrote without loading the character.</td></tr>
 <tr><td><code>TResourceFile</code></td><td><code>modified</code> was not initialized.</td></tr>
-<tr><td><code>new.cpp</code></td><td>Array <code>new[]</code>/<code>delete[]</code> did not use the library allocator.</td></tr>
+<tr><td><code>new.cpp</code></td><td>Array <code>new[]</code>/<code>delete[]</code> did not use the library allocator; the <code>std::nothrow</code> forms (used by the standard library, e.g. <code>std::stable_sort</code>) now use it too.</td></tr>
 <tr><td><code>getAltCode()</code></td><td>The Alt-Space test never matched with a signed <code>char</code>.</td></tr>
 <tr><td>TVHC</td><td><code>getWord()</code> and <code>replaceExt()</code> returned local buffers.</td></tr>
 <tr><td>TVG17B demo</td><td><code>phone[14]</code> was one byte too short for its data.</td></tr>

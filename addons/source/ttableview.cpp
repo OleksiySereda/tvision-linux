@@ -257,16 +257,12 @@ void TTableView::resort()
     int keep = focusedRow();
     for( size_t i = 0; i < order.size(); i++ )
         order[i] = int( i );
-    // equal rows keep the order they were added in.  Not stable_sort():
-    // its buffer comes from the nothrow operator new, which the library
-    // (new.cpp) does not replace, but goes back to its operator delete
+    // equal rows keep the order they were added in
     if( sortColumn >= 0 )
-        std::sort( order.begin(), order.end(),
+        std::stable_sort( order.begin(), order.end(),
             [this]( int a, int b )
                 {
                 int r = compare( a, b, sortColumn );
-                if( r == 0 )
-                    return a < b;
                 return sortAscending == True ? r < 0 : r > 0;
                 } );
     if( keep >= 0 )
