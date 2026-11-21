@@ -31,7 +31,7 @@ tv_addons_program( app app.cpp )
 | `include/*.h` | Declarations of the add-on classes |
 | `source/` | Their code, built into `lib/libtvaddons.a` |
 | `demos/` | Programs that show them (`bin/...`) |
-| `tests/` | Tests (`make check-addons`) |
+| `tests/` | Tests (`make check-addons`; `ctest` on Windows) |
 
 To add a class: put its declaration into a header in `include/` under
 `#if defined( Uses_TName ) && !defined( __TName )`, the dependencies of
@@ -51,6 +51,8 @@ DOS programs keep the WordStar keys.
 | Ctrl+V | paste | insert mode: Ins |
 | Ctrl+A | select all (`cmSelectAll`) | word left: Ctrl+Left |
 | Ctrl+B | start / end selecting without Shift (`cmToggleSelect`) | (free in `TEditor`) |
+| Ctrl+G | go to line (`cmGotoLine`) | delete char: Del |
+| Ctrl+F | incremental search (`cmIncSearch`) | word right: Ctrl+Right |
 
 ```cpp
 #define Uses_TAdvancedEditor
@@ -96,6 +98,32 @@ WordStar keys **Ctrl+K B** (start) and **Ctrl+K H** (end and hide).
   and the selection stay where they are. `wheel()` is virtual and can be
   overridden. The wheel comes as `evMouseWheel`, an event of this port
   (see `include/system.h`).
+
+### Go to line, incremental search, brackets
+
+- **Ctrl+G** asks for a line number through `TEditor::editorDialog`
+  (`edGotoLine`, the data are the number as text, `char[gotoLineLen]`);
+  `editorDialogs()` has the dialog. `gotoLine( n )` does it from the
+  program and shows the line in the middle; `cursorLine()` is the line of
+  the cursor.
+- **Ctrl+F** starts an incremental search: what is typed next is searched
+  at once, without regard to case, from where the search started; Ctrl+F
+  again finds the next one (at the end it starts over at the top),
+  Backspace takes a character back, Enter ends the search at the text found,
+  Esc goes back to where it started, any other key ends it and does what
+  it always does. Ctrl+F twice searches the text of the last search. The
+  text is left in `TEditor::findStr`, so Ctrl+L (Search again) goes on with
+  it. A `TBlockIndicator` shows `/text` while it runs (`!text` when it is
+  not found).
+- The bracket `( ) [ ] { }` at the cursor, or else the one before it, and
+  its pair are shown in `TAdvancedEditor::bracketColor` (black on cyan)
+  while the editor has the focus. Quotes and comments are not taken into
+  account. `matchBrackets = False` turns it off; `matchBracket( pos, pair )`
+  and `bracketPair( at, pair )` give the positions. An editor with its own
+  `drawLines()` calls `paintBrackets()` at the end of it, as
+  `TColoredEditor` does.
+
+Ctrl+G and Ctrl+F belong to `clipboardKeys` like Ctrl+C/X/V/A.
 
 ### Line numbers: TLineNumbers
 
@@ -174,9 +202,116 @@ editorFileMask = "*.yaml";          // the file list of Save as; "*.*" by defaul
 ```
 
 Then `cmFind`, `cmReplace` and `cmSearchAgain` work (Ctrl+Q F, Ctrl+Q A,
-Ctrl+L in the editor) and can be put into a menu. `newFindDialog()`,
-`newReplaceDialog()` and `execEditorDialog()` are there for programs that
+Ctrl+L in the editor) and can be put into a menu, and so does `cmGotoLine`
+of `TAdvancedEditor` (Ctrl+G). `newFindDialog()`, `newReplaceDialog()`,
+`newGotoLineDialog()` and `execEditorDialog()` are there for programs that
 build their own `editorDialog`.
+
+## TLogView
+
+A `TScroller` that shows lines added at the end, as a log:
+
+```cpp
+#define Uses_TLogView
+#include <tvaddons.h>
+
+TLogView *log = new TLogView( r, hScrollBar, vScrollBar );   // 2000 lines kept
+log->add( "Build: 19 cells" );
+log->add( "line 3: unknown label", TLogView::errorColor );
+log->addf( "STOP after %d steps, AC = %d", steps, ac );
+log->saveToFile( "run.log" );
+```
+
+- Only the last `maxLines` lines are kept (the fourth argument, 2000 by
+  default).
+- While the end is shown, new lines scroll it along (`autoScroll`); after
+  the user has scrolled up the view stays where it is until they go back
+  to the end.
+- A line may have a colour of its own, an attribute (0 = the view's
+  colour): `errorColor` (white on red), `warningColor` (yellow on brown),
+  `goodColor` (white on green), or any other.
+- Tabs become blanks and `\n` starts a new line.
+- The arrow keys, PgUp/PgDn, Home/End (and Ctrl+PgUp/PgDn) and the mouse
+  wheel scroll it; it scrolls without scroll bars too, and while they are
+  hidden. `scrollToPos()`, `scrollToEnd()`, `atEnd()` and `position()` do
+  it from the program.
+- A view of lines kept elsewhere overrides `lineCount()`, `lineText()` and
+  `lineColor()` and calls `update()` when there are new ones (the logs of
+  deployer do so).
+
+## TTableView, TTableHeader
+
+A `TListViewer` of rows with columns of text, and a header over it:
+
+```cpp
+#define Uses_TTableView
+#define Uses_TTableHeader
+#include <tvaddons.h>
+
+TTableView *table = new TTableView( TRect( 2, 3, 60, 15 ), 0, vScrollBar );
+table->addColumn( "Server", 12 );
+table->addColumn( "Port", 6, TTableView::alRight );
+table->addColumn( "Description", 30 );
+table->addRow( { "web1", "22", "Frontend" } );
+table->markable = True;                 // Space / Ins mark rows
+insert( table );
+insert( new TTableHeader( TRect( 2, 2, 60, 3 ), table ) );
+```
+
+- A click on a title sorts by that column, a second click the other way
+  round; an arrow in the title shows it. `sortBy( col, ascending )` does it
+  from the program, `sortBy( -1 )` goes back to the order of adding.
+  Numbers are compared as numbers, other text without regard to case;
+  `compare()` is virtual. A row added to a sorted table goes into its
+  place; after `setCell()` the program calls `resort()` if it wants the
+  rows sorted again.
+- With `markable`, Space and Ins (which moves on) mark and unmark the
+  focused row, as does a click in the first column; marked rows show a
+  check mark in the "selected" colour. `setMark()`, `isMarked()`,
+  `markedCount()`, `markAll()`.
+- Enter and a double click broadcast `cmListItemSelected` as `TListViewer`
+  does; `focusedRow()` is the row.
+- Rows are numbered in the order they were added (`row`); their place on
+  the screen after sorting is an item (`focused`, `topItem`): `rowAt()` and
+  `itemOf()` convert. `removeRow()` renumbers the rows after it.
+- The header follows the sideways scrolling of the table (with a
+  horizontal scroll bar). Colours are the list viewer's, so the table
+  belongs in a dialog, as `TListBox` does.
+
+## TValidatedInputLine and validators
+
+Turbo Vision 1.0 has no validators (they came with 2.0). A
+`TValidatedInputLine` is a `TInputLine` with a `TValidator`:
+
+```cpp
+#define Uses_TValidatedInputLine
+#include <tvaddons.h>
+
+d->insert( new TValidatedInputLine( TRect( 3, 2, 12, 3 ), 5,
+               new TRangeValidator( 1, 65535 ) ) );
+d->insert( new TValidatedInputLine( TRect( 3, 4, 20, 5 ), 15,
+               new TRegexValidator( "(\\d{1,3}\\.){3}\\d{1,3}", "Not an IPv4 address." ) ) );
+```
+
+- While typing, a key that would make the text impossible (a letter in a
+  number, a number past the range) is not taken.
+- When the dialog is closed with any command but Cancel (OK, Yes, ...), a
+  wrong text gives a message box saying why, the line is selected and the
+  dialog stays open. Moving to another control with Tab does not check.
+
+| Validator | Accepts |
+|---|---|
+| `TFilterValidator( "0123456789abcdef" )` | only these characters |
+| `TRangeValidator( min, max )` | a whole number from min to max; `value()` gives it |
+| `TLookupValidator( "yes\|no", '\|', caseSensitive )` | one of a list |
+| `TRegexValidator( expression, message, caseSensitive )` | the whole text matches (`std::regex`, ECMAScript) |
+| `TFuncValidator( check, message, data )` | what `check( text, data )` says |
+
+`allowEmpty = True` lets an empty text through whatever the validator says.
+A validator of its own derives from `TValidator` and overrides
+`isValidInput()` (while typing), `isValid()` and `errorText()`. The line owns
+its validator; `setValidator()` changes it. The data stay text, as for a
+`TInputLine`; the line is written to a stream as a plain `TInputLine`.
 
 ## TYamlEditor, TYamlEditWindow
 

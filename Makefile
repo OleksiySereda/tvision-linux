@@ -88,9 +88,14 @@ bin/advedit-test: obj/addons/tests/advedit_test.o $(ADDLIB) $(LIB)
 	@mkdir -p bin
 	$(CXX) $(LDFLAGS) -o $@ $< $(LINKADD)
 
-check-addons: bin/yamlsyntax-test bin/advedit-test
+bin/widgets-test: obj/addons/tests/widgets_test.o $(ADDLIB) $(LIB)
+	@mkdir -p bin
+	$(CXX) $(LDFLAGS) -o $@ $< $(LINKADD)
+
+check-addons: bin/yamlsyntax-test bin/advedit-test bin/widgets-test
 	bin/yamlsyntax-test
 	bin/advedit-test
+	bin/widgets-test
 
 obj/%.o: %.cpp
 	@mkdir -p $(dir $@)

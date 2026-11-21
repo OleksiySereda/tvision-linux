@@ -7,7 +7,7 @@
 /*   TEditor asks its questions through TEditor::editorDialog, which by    */
 /*   default answers cmCancel to everything: no Find, no Replace, no       */
 /*   "Save?" and no "Save as".  editorDialogs() is a complete one, with    */
-/*   the dialogs of TVEDIT:                                                */
+/*   the dialogs of TVEDIT and Go to line of TAdvancedEditor:             */
 /*                                                                         */
 /*       TEditor::editorDialog = editorDialogs;                            */
 /*       editorFileMask = "*.yaml";     // the Save as file list           */
@@ -35,6 +35,9 @@ extern const char *editorFileMask;
 // TReplaceDialogRec (editors.h)
 TDialog *newFindDialog();
 TDialog *newReplaceDialog();
+// the Go to line dialog of TAdvancedEditor (Ctrl+G, edGotoLine); its data
+// are the line number as text, char[gotoLineLen]
+TDialog *newGotoLineDialog();
 
 // runs d on the desktop with data (may be 0) and destroys it; returns
 // the command that ended it

@@ -22,8 +22,18 @@
 /*                                                                         */
 /*   The mouse wheel scrolls the text (evMouseWheel, Linux port).          */
 /*                                                                         */
+/*       Ctrl+G  go to line     (a dialog: editorDialog( edGotoLine ))     */
+/*       Ctrl+F  incremental search: the text typed next is searched      */
+/*               as it is typed; Ctrl+F again finds the next one,          */
+/*               Backspace takes a character back, Enter ends it at the    */
+/*               text found, Esc goes back to where it started             */
+/*                                                                         */
+/*   Ctrl+G and Ctrl+F (WordStar delete char and word right, also on Del   */
+/*   and Ctrl+Right) belong to clipboardKeys too.  The bracket next to     */
+/*   the cursor and its pair are shown in bracketColor.                    */
+/*                                                                         */
 /*   TBlockIndicator is a TIndicator that shows "B" while Ctrl+B           */
-/*   selecting is on.                                                      */
+/*   selecting is on, and the text of an incremental search.               */
 /*                                                                         */
 /*   TLineNumbers shows the line numbers left of a TAdvancedEditor.        */
 /*                                                                         */
@@ -39,7 +49,16 @@
 // they may be put into menus as they are
 const int
   cmSelectAll    = 530,     // select the whole text
-  cmToggleSelect = 531;     // Ctrl+B: start / end selecting
+  cmToggleSelect = 531,     // Ctrl+B: start / end selecting
+  cmGotoLine     = 532,     // Ctrl+G: asks for a line number
+  cmIncSearch    = 533;     // Ctrl+F: incremental search
+
+// the dialog of cmGotoLine, after TEditor's edOutOfMemory .. edReplacePrompt:
+// editorDialog( edGotoLine, char *number ) gets the line number as text
+// (at most gotoLineLen characters with the 0) and returns cmOK or cmCancel
+const int
+  edGotoLine  = 20,
+  gotoLineLen = 8;
 
 #endif  // __ADVEDIT_COMMAND_CODES
 
@@ -61,6 +80,12 @@ public:
     // shows or hides the "B"
     void setBlock( Boolean on );
     Boolean block;
+
+    // shows "/text" (or "!text" when it is not found) instead of the
+    // position while an incremental search runs; 0 ends it
+    void setSearch( const char *text, Boolean found );
+    char search[40];
+    Boolean searching, searchFound;
 
 private:
 
@@ -129,12 +154,54 @@ public:
     // redraws the line numbers too (see TLineNumbers)
     virtual void draw();
     virtual void shutDown();
+    virtual void setState( ushort, Boolean );
     TLineNumbers *lineNumbers;          // set by TLineNumbers, else 0
+
+    // moves the cursor to the start of line (1 = the first; past the end:
+    // the last line) and shows it in the middle of the editor
+    void gotoLine( int line );
+    // the line of the cursor, 1 = the first
+    int cursorLine();
+    // Ctrl+G: asks for the line through editorDialog( edGotoLine )
+    void askGotoLine();
+
+    // the incremental search (Ctrl+F); typed text is searched without
+    // regard to case.  Ending it leaves the text in findStr, so Ctrl+L
+    // (cmSearchAgain) goes on with it.
+    void startIncSearch();
+    void endIncSearch( Boolean keep );
+    Boolean incSearching() const
+        { return searching; }
+    const char *incSearchText() const
+        { return searchText; }
+
+    // the pair of the bracket ( ) [ ] { } at the cursor, or else just
+    // before it: False if there is none; ignores quotes and comments
+    Boolean bracketPair( ushort& at, ushort& pair );
+    // the bracket that pairs with the one at pos, or False
+    Boolean matchBracket( ushort pos, ushort& pair );
+    Boolean matchBrackets;              // True: show the pair
+    static uchar bracketColor;          // black on cyan
+
+protected:
+
+    virtual void drawLines( int, int, ushort );
+    // paints the bracket pair over the lines drawLines() has drawn;
+    // an editor with its own drawLines() calls it at the end
+    void paintBrackets( int y, int count, ushort linePtr );
 
 private:
 
     // tells a TBlockIndicator whether selecting is on
     void showSelecting();
+    void showSearch();
+    Boolean searchFrom( ushort pos );
+    Boolean incSearchKey( TEvent& );
+
+    Boolean searching, searchFound;
+    char searchText[maxFindStrLen];
+    ushort searchOrigin;
+    ushort shownAt, shownPair;          // the brackets drawn last, or 0xFFFF
 
     virtual const char *streamableName() const
         { return name; }

@@ -59,6 +59,8 @@ void TColoredEditor::drawLines( int y, int count, ushort linePtr )
     ushort color = getColor( 0x0201 );
     uchar normal = uchar( color );
     Boolean colours = Boolean( highlight && TProgram::appPalette == apColor );
+    int y0 = y, count0 = count;
+    ushort line0 = linePtr;
 
     while( count-- > 0 )
         {
@@ -89,4 +91,5 @@ void TColoredEditor::drawLines( int y, int count, ushort linePtr )
         linePtr = nextLine( linePtr );
         y++;
         }
+    paintBrackets( y0, count0, line0 );
 }

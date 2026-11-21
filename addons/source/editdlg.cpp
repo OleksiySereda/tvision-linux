@@ -25,6 +25,7 @@
 #define Uses_TSItem
 #define Uses_TFileDialog
 #define Uses_MsgBox
+#define Uses_TValidatedInputLine
 #include <tvaddons.h>
 
 #include <stdarg.h>
@@ -95,6 +96,23 @@ TDialog *newReplaceDialog()
     return d;
 }
 
+TDialog *newGotoLineDialog()
+{
+    TDialog *d = new TDialog( TRect( 0, 0, 30, 8 ), "Go to line" );
+    d->options |= ofCentered;
+
+    TInputLine *control = new TValidatedInputLine( TRect( 15, 2, 24, 3 ), gotoLineLen - 1,
+                                                   new TRangeValidator( 1, 65535 ) );
+    d->insert( control );
+    d->insert( new TLabel( TRect( 2, 2, 14, 3 ), "~L~ine number", control ) );
+
+    d->insert( new TButton( TRect( 4, 5, 14, 7 ), "O~K~", cmOK, bfDefault ) );
+    d->insert( new TButton( TRect( 16, 5, 26, 7 ), "Cancel", cmCancel, bfNormal ) );
+
+    d->selectNext( False );
+    return d;
+}
+
 // a message with the file name the editor passes
 static ushort fileMessage( const char *format, va_list arg, ushort options )
 {
@@ -143,6 +161,9 @@ ushort editorDialogs( int dialog, ... )
             break;
         case edReplace:
             result = execEditorDialog( newReplaceDialog(), va_arg( arg, void * ) );
+            break;
+        case edGotoLine:
+            result = execEditorDialog( newGotoLineDialog(), va_arg( arg, char * ) );
             break;
         case edReplacePrompt:
             {

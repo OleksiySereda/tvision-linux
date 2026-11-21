@@ -32,7 +32,7 @@ static void check( bool ok, const char *what )
 // what the keyboard sends: the scan code of the letter and the control
 // character (kbCtrlC etc. have only the character)
 const ushort keyCtrlA = 0x1E01, keyCtrlB = 0x3002, keyCtrlC = 0x2E03, keyCtrlK = 0x250B,
-             keyCtrlV = 0x2F16, keyCtrlX = 0x2D18;
+             keyCtrlV = 0x2F16, keyCtrlX = 0x2D18, keyCtrlF = 0x2106;
 
 static void key( TEditor *ed, ushort keyCode )
 {
@@ -192,6 +192,84 @@ int main()
            "classColor colours the classes" );
     check( ded->highlight == True, "highlight is on" );
     TObject::destroy( ded );
+
+    // go to line
+    TAdvancedEditor *ged = new TAdvancedEditor( r, 0, 0, 0, 0 );
+    const char *gt = "one\r\ntwo\r\nthree\r\nfour";
+    ged->insertText( gt, ushort( strlen( gt ) ), False );
+    ged->gotoLine( 3 );
+    check( ged->curPtr == 10 && ged->cursorLine() == 3, "gotoLine( 3 ) goes to the third line" );
+    ged->gotoLine( 1 );
+    check( ged->curPtr == 0 && ged->cursorLine() == 1, "gotoLine( 1 ) goes to the start" );
+    ged->gotoLine( 99 );
+    check( ged->curPtr == 17 && ged->cursorLine() == 4, "past the end: the last line" );
+    TObject::destroy( ged );
+
+    // brackets
+    TAdvancedEditor *bred = new TAdvancedEditor( r, 0, 0, 0, 0 );
+    const char *bt = "f(a[1], {b}) )";
+    bred->insertText( bt, ushort( strlen( bt ) ), False );
+    ushort pair = 0, at = 0;
+    check( bred->matchBracket( 1, pair ) && pair == 11, "( pairs with its )" );
+    check( bred->matchBracket( 11, pair ) && pair == 1, ") pairs with its (" );
+    check( bred->matchBracket( 3, pair ) && pair == 5, "[ pairs with ]" );
+    check( bred->matchBracket( 8, pair ) && pair == 10, "{ pairs with }" );
+    check( !bred->matchBracket( 13, pair ), "a ) without ( has no pair" );
+    check( !bred->matchBracket( 0, pair ), "a letter has no pair" );
+    bred->setState( sfFocused, True );
+    bred->setCurPtr( 4, 0 );
+    check( bred->bracketPair( at, pair ) && at == 3 && pair == 5,
+           "bracketPair: the bracket before the cursor" );
+    bred->setCurPtr( 8, 0 );
+    check( bred->bracketPair( at, pair ) && at == 8 && pair == 10,
+           "bracketPair: the bracket at the cursor first" );
+    bred->matchBrackets = False;
+    check( !bred->bracketPair( at, pair ), "matchBrackets = False: no pair" );
+    TObject::destroy( bred );
+
+    // incremental search
+    TBlockIndicator *sind = new TBlockIndicator( TRect( 0, 0, 12, 1 ) );
+    TAdvancedEditor *sed = new TAdvancedEditor( r, 0, 0, sind, 0 );
+    const char *st = "alpha beta\nAlphabet gamma\nalpine";
+    sed->insertText( st, ushort( strlen( st ) ), False );
+    sed->setCurPtr( 0, 0 );
+    key( sed, keyCtrlF );
+    check( sed->incSearching() && sind->searching == True, "Ctrl+F starts the search" );
+    key( sed, 'b' );
+    check( sed->selStart == 6 && selection( sed ) == "b", "typing searches at once" );
+    key( sed, 'e' );
+    key( sed, 't' );
+    check( sed->selStart == 6 && selection( sed ) == "bet", "each key narrows it" );
+    key( sed, keyCtrlF );
+    check( sed->selStart == 16 && selection( sed ) == "bet", "Ctrl+F again: the next one, any case" );
+    key( sed, keyCtrlF );
+    check( sed->selStart == 6, "at the end it starts over at the top" );
+    key( sed, 'x' );
+    check( sed->selStart == 6 && sind->searchFound == False && strcmp( sind->search, "betx" ) == 0,
+           "not found: the indicator says so, the selection stays" );
+    key( sed, kbBack );
+    check( sind->searchFound == True && strcmp( sed->incSearchText(), "bet" ) == 0,
+           "Backspace takes the character back" );
+    key( sed, kbEnter );
+    check( !sed->incSearching() && sind->searching == False && sed->selStart == 6,
+           "Enter ends it at the text found" );
+    check( strcmp( TEditor::findStr, "bet" ) == 0, "the text is left for Search again" );
+    sed->setCurPtr( 0, 0 );
+    key( sed, keyCtrlF );
+    key( sed, 'p' );
+    key( sed, 'i' );
+    check( sed->selStart == 28, "\"pi\" is found in alpine" );
+    key( sed, kbEsc );
+    check( !sed->incSearching() && sed->curPtr == 0 && sed->selStart == sed->selEnd,
+           "Esc goes back to where it started" );
+    key( sed, keyCtrlF );
+    key( sed, keyCtrlF );
+    check( strcmp( sed->incSearchText(), "pi" ) == 0 && sed->selStart == 28,
+           "Ctrl+F twice searches the last text" );
+    key( sed, kbRight );
+    check( !sed->incSearching(), "another key ends the search" );
+    TObject::destroy( sed );
+    TObject::destroy( sind );
 
     TEditor::clipboard = 0;
     TObject::destroy( ed );

@@ -32,6 +32,23 @@
 #define Uses_TDialog
 #endif
 
+#if defined( Uses_TValidatedInputLine )
+#define Uses_TValidator
+#define Uses_TInputLine
+#endif
+
+#if defined( Uses_TLogView )
+#define Uses_TScroller
+#endif
+
+#if defined( Uses_TTableHeader )
+#define Uses_TTableView
+#endif
+
+#if defined( Uses_TTableView )
+#define Uses_TListViewer
+#endif
+
 #if defined( Uses_TAdvancedEditor )
 #define Uses_TFileEditor
 #define Uses_TScrollBar
@@ -54,3 +71,6 @@
 #include <colredit.h>
 #include <yamledit.h>
 #include <editdlg.h>
+#include <validate.h>
+#include <logview.h>
+#include <tableview.h>

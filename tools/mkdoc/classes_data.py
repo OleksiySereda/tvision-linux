@@ -711,7 +711,7 @@ section("Add-ons", "New classes of the port, in <code>addons/</code>: a library 
         "<code>tvaddons</code>, with <code>/WHOLEARCHIVE</code>). "
         "<code>editdlg.h</code> (<code>Uses_TEditorDialogs</code>) adds "
         "<code>editorDialogs()</code>, a complete <code>TEditor::editorDialog</code>: "
-        "Find, Replace, the replace prompt, Save?, Save as and the error messages "
+        "Find, Replace, the replace prompt, Go to line, Save?, Save as and the error messages "
         "(<code>TEditor::editorDialog = editorDialogs; editorFileMask = \"*.yaml\";</code>).", [
 
 ("TAdvancedEditor", "advedit.h", ["TFileEditor"], "Uses_TAdvancedEditor",
@@ -720,17 +720,22 @@ section("Add-ons", "New classes of the port, in <code>addons/</code>: a library 
  "Ctrl+B starts and ends selecting with the cursor keys alone, for terminals "
  "that do not send Shift (<code>cmToggleSelect</code>). The mouse wheel scrolls "
  "the text (<code>evMouseWheel</code>, <code>wheelLines</code>). "
- "<code>clipboardKeys = False</code> gives Ctrl+C/X/V/A back to the WordStar "
+ "Ctrl+G goes to a line (<code>cmGotoLine</code>, <code>gotoLine()</code>), "
+ "Ctrl+F searches as you type (<code>cmIncSearch</code>), and the bracket at "
+ "the cursor and its pair are shown in <code>bracketColor</code>. "
+ "<code>clipboardKeys = False</code> gives Ctrl+C/X/V/A/G/F back to the WordStar "
  "commands; <code>TEditor</code> itself is unchanged.",
 r'''#define Uses_TAdvancedEditor
 #include <tvaddons.h>
 
 TAdvancedEditor *ed = new TAdvancedEditor( r, hScroll, vScroll, indicator, "notes.txt" );
 ed->wheelLines = 5;             // lines per wheel step
-ed->clipboardKeys = False;      // the WordStar keys again'''),
+ed->clipboardKeys = False;      // the WordStar keys again
+ed->gotoLine( 120 );            // as Ctrl+G does'''),
 
 ("TBlockIndicator", "advedit.h", ["TIndicator"], "Uses_TBlockIndicator",
- "A <code>TIndicator</code> that shows <b>B</b> while Ctrl+B selecting is on. "
+ "A <code>TIndicator</code> that shows <b>B</b> while Ctrl+B selecting is on, "
+ "and <code>/text</code> while an incremental search runs. "
  "Pass it to a <code>TAdvancedEditor</code> instead of a plain indicator.",
 r'''TBlockIndicator *ind = new TBlockIndicator( TRect( 2, size.y - 1, 16, size.y ) );
 insert( ind );
@@ -783,6 +788,55 @@ ed->highlight = False;          // plain text again'''),
 r'''TYamlEditWindow *w = new TYamlEditWindow( TProgram::deskTop->getExtent(),
                                           "docker-compose.yaml", wnNoNumber );
 TProgram::deskTop->insert( TProgram::application->validView( w ) );'''),
+
+("TLogView", "logview.h", ["TScroller"], "Uses_TLogView",
+ "A log: lines added at the end with <code>add()</code> or <code>addf()</code>, "
+ "each in a colour of its own if need be (<code>errorColor</code>, "
+ "<code>warningColor</code>, <code>goodColor</code>). Keeps the last "
+ "<code>maxLines</code> (2000); follows the end while it is shown "
+ "(<code>autoScroll</code>); scrolls with the keys and the wheel, with or "
+ "without scroll bars; <code>saveToFile()</code>. A view of lines kept "
+ "elsewhere overrides <code>lineCount()</code>, <code>lineText()</code>, "
+ "<code>lineColor()</code> and calls <code>update()</code>.",
+r'''TLogView *log = new TLogView( r, 0, vScroll );
+insert( log );
+log->add( "Build: 19 cells" );
+log->add( "line 3: unknown label", TLogView::errorColor );
+log->addf( "STOP after %d steps", steps );'''),
+
+("TTableView", "tableview.h", ["TListViewer"], "Uses_TTableView",
+ "A list of rows with columns of text (<code>addColumn()</code>, "
+ "<code>addRow()</code>, <code>setCell()</code>), sorted by any column "
+ "(<code>sortBy()</code>; numbers as numbers), with marks on rows when "
+ "<code>markable</code> (Space, Ins, a click in the first column). "
+ "<code>rowAt()</code> and <code>itemOf()</code> convert between the rows and "
+ "their places on the screen.",
+r'''TTableView *t = new TTableView( TRect( 2, 3, 60, 15 ), 0, vScroll );
+t->addColumn( "Server", 12 );
+t->addColumn( "Port", 6, TTableView::alRight );
+t->addRow( { "web1", "22" } );
+t->markable = True;
+t->sortBy( 1 );                 // by port'''),
+
+("TTableHeader", "tableview.h", ["TView"], "Uses_TTableHeader",
+ "The titles over a <code>TTableView</code>, with an arrow on the sort "
+ "column; a click on a title sorts by it, a second click the other way round.",
+r'''insert( t );
+insert( new TTableHeader( TRect( 2, 2, 60, 3 ), t ) );'''),
+
+("TValidatedInputLine", "validate.h", ["TInputLine"], "Uses_TValidatedInputLine",
+ "A <code>TInputLine</code> with a validator (Turbo Vision 1.0 has none): keys "
+ "that make the text impossible are not taken, and closing the dialog with "
+ "anything but Cancel shows why a text is wrong and keeps the dialog open. "
+ "Validators: <code>TFilterValidator</code>, <code>TRangeValidator</code>, "
+ "<code>TLookupValidator</code>, <code>TRegexValidator</code> "
+ "(<code>std::regex</code>), <code>TFuncValidator</code>; their base "
+ "<code>TValidator</code> has <code>isValidInput()</code>, <code>isValid()</code>, "
+ "<code>errorText()</code> and <code>allowEmpty</code>.",
+r'''d->insert( new TValidatedInputLine( TRect( 3, 2, 12, 3 ), 5,
+               new TRangeValidator( 1, 65535 ) ) );
+d->insert( new TValidatedInputLine( TRect( 3, 4, 12, 5 ), 5,
+               new TLookupValidator( "yes|no" ) ) );'''),
 ])
 
 # --------------------------------------------------------------------------

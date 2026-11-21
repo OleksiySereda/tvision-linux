@@ -96,13 +96,23 @@ library of their own (`lib/libtvaddons.a`, header `tvaddons.h`):
 
 - `TAdvancedEditor`: a `TFileEditor` where Ctrl+C, Ctrl+X, Ctrl+V and Ctrl+A
   copy, cut, paste and select all, Ctrl+B selects with the cursor keys
-  without Shift (as F3 in Midnight Commander), and the mouse wheel scrolls;
+  without Shift (as F3 in Midnight Commander), Ctrl+G goes to a line, Ctrl+F
+  searches as you type, the pair of a bracket is shown, and the mouse wheel
+  scrolls;
 - `TLineNumbers`: line numbers left of the editor, with marked lines;
 - `TColoredEditor`: the base of syntax colouring editors (`scanLine()`,
   `classColor()`);
 - `TYamlEditor`: a `TColoredEditor` with YAML syntax colouring, and
   `TYamlEditWindow`, a `TEditWindow` that uses it;
-- `editorDialogs()`: the Find, Replace, Save and error dialogs of the editors.
+- `editorDialogs()`: the Find, Replace, Go to line, Save and error dialogs of
+  the editors;
+- `TLogView`: a log of lines added at the end, with colours, a limit and
+  scrolling that follows the end;
+- `TTableView` and `TTableHeader`: a table with columns, sorting by a click
+  on the title and marked rows;
+- `TValidatedInputLine` with `TRangeValidator`, `TFilterValidator`,
+  `TLookupValidator`, `TRegexValidator` and `TFuncValidator`: input lines
+  that check what is typed.
 
 ### Environment variables
 
