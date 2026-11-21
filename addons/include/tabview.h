@@ -42,6 +42,7 @@
 #include <vector>
 
 class TRect;
+class TPage;
 struct TEvent;
 
 const ushort cmTabChanged = 540;
@@ -55,11 +56,11 @@ public:
 
     // a new page with title ("~N~etwork": Alt+N shows it); the first one
     // added is shown
-    TGroup *addPage( const char *title );
+    TPage *addPage( const char *title );
 
     int pageCount() const
         { return int( pages.size() ); }
-    TGroup *page( int i ) const
+    TPage *page( int i ) const
         { return i >= 0 && i < pageCount() ? pages[i] : 0; }
     const char *pageTitle( int i ) const;
     int currentPage() const
@@ -82,7 +83,7 @@ private:
     void startPage( int i );
     int pageWithInvalidLine( ushort command );
 
-    std::vector<TGroup *> pages;
+    std::vector<TPage *> pages;
     std::vector<std::string> titles;
     int shown;
     TView *titles_;                     // the first line

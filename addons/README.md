@@ -33,7 +33,7 @@ tv_addons_program( app app.cpp )
 | `demos/` | Programs that show them (`bin/...`) |
 | `tests/` | Tests (`make check-addons`; `ctest` on Windows) |
 | `demos/validate.cpp` | `bin/validate`: a form with every validator |
-| `demos/controls.cpp` | `bin/controls`: tabs, combo boxes, a tree, a progress dialog, settings |
+| `demos/controls.cpp` | `bin/controls`: tabs, combo boxes, a tree, a progress dialog, settings, a wizard, commands and their output, the command palette (Ctrl+P), README in a Markdown view, a splitter, themes, toasts, files in a colouring editor |
 
 To add a class: put its declaration into a header in `include/` under
 `#if defined( Uses_TName ) && !defined( __TName )`, the dependencies of
@@ -485,6 +485,210 @@ settings.save();
 dialog with three pages, combo boxes and validated lines, a tree of
 servers, a progress dialog, the recent files in the File menu, and the
 settings and dialog positions kept between runs.
+
+## TWizard
+
+A dialog of steps with Back, Next (Finish on the last page) and Cancel; the
+pages are `TPage`s, as those of `TTabView`:
+
+```cpp
+#define Uses_TWizard
+#include <tvaddons.h>
+
+TWizard *w = new TWizard( TRect( 0, 0, 60, 18 ), "New deployment" );
+TPage *p = w->addPage( "Project" );
+p->insert( new TValidatedInputLine( TRect( 15, 1, 45, 2 ), 31, new TRegexValidator( ".+" ) ) );
+p = w->addPage( "Server" );
+...
+if( deskTop->execView( w ) == cmOK )
+    w->getData( &rec );
+```
+
+- The first line says "Step 2 of 3: Server".
+- Next checks the page (its validated lines from the top, then
+  `canLeave()`); Back does not; Finish checks the last page and ends the
+  dialog with cmOK.
+- Tab goes through the controls of the page, then to the buttons.
+- `getData()` / `setData()` take every page in the order they were added.
+- A derived wizard overrides `canLeave( page, forwards )` (to check a path,
+  say) and `pageShown( page )` (to fill a summary from the pages before);
+  its constructor starts `TWindowInit` itself, as for any window.
+
+## TProcess, TProcessView, TProcessDialog
+
+`TProcess` runs a command through the shell (`/bin/sh -c`; `cmd.exe /d /s
+/c` on Windows) with stdout and stderr in one pipe that is read without
+waiting; `stop()` ends it with everything it started (its process group;
+a job object on Windows). `TProcessView` is a `TLogView` that shows the
+output as it comes, and `TProcessDialog` runs a command in a dialog with
+the output, a status line, Stop and Close:
+
+```cpp
+#define Uses_TProcessDialog
+#include <tvaddons.h>
+
+int code = TProcessDialog::run( "Build", "make -j4", "/home/me/shop" );
+```
+
+- `start( command, dir, env )`: a working directory and variables
+  (`"NAME=value"`) for the command only.
+- `read()` (raw bytes), `running()`, `exitCode()` (128 + the signal when it
+  was killed, 143 after `stop()`).
+- The view shows `$ command`, then the output (UTF-8; on Windows the OEM
+  code page unless it already is UTF-8, in the code page of the screen,
+  colour escapes taken out; `\r` alone starts the line over), then
+  "exit code N" in green or red. Its `poll()` reads what came; a program
+  that shows the view in a window of its own calls it from `idle()`.
+
+## TCommandPalette
+
+Every command of the menu bar, found by typing a part of its name:
+
+```cpp
+#define Uses_TCommandPalette
+#include <tvaddons.h>
+
+case cmPalette:
+    TCommandPalette::run();         // puts the chosen command into the queue
+```
+
+The names come with their menu path ("File > Save as...") and key; the
+disabled commands are left out, `addCommand()` adds others. The start of a
+word matches best, then a part of a word, then the letters in order ("sva"
+finds "Save as"). Up, Down, PgUp and PgDn move in the list while typing;
+Enter or a double click runs the command.
+
+A key for it: Ctrl+P comes from the keyboard as `0x1910` (the scan code of
+P and the control character); `kbCtrlP` (0x0010) is the character alone,
+which a status line or a menu does not match.
+
+## TMarkdownView, TMarkdownWindow
+
+A Markdown text laid out for the width of the view:
+
+```cpp
+#define Uses_TMarkdownWindow
+#include <tvaddons.h>
+
+deskTop->insert( validView( new TMarkdownWindow( deskTop->getExtent(), "README.md" ) ) );
+```
+
+- Headings (the first two underlined), paragraphs wrapped again when the
+  width changes, **bold**, *emphasis*, `code`, lists (also nested and
+  numbered), quotes, lines, code blocks (they scroll sideways) and tables.
+- Tab and Shift+Tab go from link to link, Enter or a click follows one:
+  `#name` scrolls to that heading (anchors as GitHub makes them:
+  "Building on Windows" is `#building-on-windows`); other targets are
+  broadcast as `cmMarkdownLink` with the target in `infoPtr`.
+- `setText()`, `loadFile()`, `gotoAnchor()`; `styleColor()` gives the
+  colour of each style and can be overridden.
+- The text is UTF-8 and is shown in the code page of the screen
+  (`toScreenText()` in `textconv.h`).
+
+## TDateInput, TDateButton
+
+An input line for a date with a calendar that drops down:
+
+```cpp
+#define Uses_TDateInput
+#include <tvaddons.h>
+
+TDateInput *d = new TDateInput( TRect( 15, 7, 28, 8 ) );        // YYYY-MM-DD
+dlg->insert( d );
+dlg->insert( new TDateButton( TRect( 28, 7, 31, 8 ), d ) );
+...
+TDate when = d->date();
+```
+
+- `dfISO` (YYYY-MM-DD), `dfDMY` (DD.MM.YYYY) or `dfMDY` (MM/DD/YYYY);
+  typing takes only digits and puts in the separators itself; closing the
+  dialog wants a real date (`TDateValidator`).
+- Down or F4 in the line, or the button, opens the calendar (the week
+  starts on Monday, today is marked): arrows by a day or a week, PgUp/PgDn
+  by a month, Ctrl+PgUp/PgDn by a year, Home today; Enter or a click takes
+  the day.
+- `TDate`: `isValid()`, `weekday()`, `addDays()`, `addMonths()`,
+  `today()`; `formatDate()` and `parseDate()`.
+
+## TSplitter
+
+A bar between two parts of a window that the mouse drags:
+
+```cpp
+#define Uses_TSplitter
+#include <tvaddons.h>
+
+TSplitter *s = new TSplitter( TRect( 30, 1, 31, size.y - 1 ), True );   // vertical
+s->addFirst( tree );                            // left: resized
+s->addFirst( treeScrollBar, TSplitter::smMove );    // moves with the bar
+s->addSecond( text );                           // right: resized
+insert( s );
+s->restore( settings, "main" );                 // TAppSettings, [splitter.main]
+```
+
+`minFirst` and `minSecond` (3) keep both parts from vanishing;
+`setPosition()` moves it from the program; `save()` keeps the position.
+
+## Themes
+
+Colour themes for the whole program (the 63 colours of `TProgram`'s colour
+palette): Classic, Dark, Light and High contrast.
+
+```cpp
+#define Uses_TThemes
+#include <tvaddons.h>
+
+*new TMenuItem( "~T~heme", kbNoKey, new TMenu( *themeMenu( cmTheme ) ) )   // a submenu
+...
+applyTheme( command - cmTheme );
+saveTheme( settings );                          // [colors] theme=Dark
+...
+loadTheme( settings );                          // at start
+```
+
+`applyTheme()` frees the buffers of the windows and the desktop (they
+keep what they show in the old colours) and redraws everything.
+
+## TToast, TStatusMessageLine
+
+Short messages that go away by themselves:
+
+```cpp
+#define Uses_TToast
+#include <tvaddons.h>
+
+TToast::show( "Saved", TToast::tkSuccess );             // 3 seconds
+TToast::show( "2 servers failed", TToast::tkError, 6 );
+
+void TMyApp::idle() { TApplication::idle(); TToast::idle(); }
+```
+
+A toast shows at the bottom right of the desktop, over the windows; several
+stack upwards; a click closes one. `TStatusMessageLine` is a status line
+that shows `message( text, seconds )` in place of its keys for a while.
+Views have no timers, so the program calls `TToast::idle()` from its
+`idle()`.
+
+## TSyntaxEditor, TSyntaxEditWindow
+
+A `TColoredEditor` for C/C++, shell scripts (and Makefiles), INI and .env
+files, JSON and Markdown; the language comes from the name of the file:
+
+```cpp
+#define Uses_TSyntaxEditWindow
+#include <tvaddons.h>
+
+deskTop->insert( validView( new TSyntaxEditWindow( r, "deploy.sh", wnNoNumber ) ) );
+```
+
+`TSyntaxEditWindow` takes a `TYamlEditor` for YAML. The classes are
+keywords, types, strings, numbers, comments, the preprocessor,
+punctuation, variables ($HOME, ${X}), headings, keys and sections,
+constants (true, null, MACROS), emphasis and code; `darkColors` and
+`lightColors` hold their colours. Block comments and code fences over
+several lines are followed from the start of the text, and the lines below
+are drawn again when one opens or closes. `scanText()` classifies a line
+for tests or other views.
 
 ## TYamlEditor, TYamlEditWindow
 

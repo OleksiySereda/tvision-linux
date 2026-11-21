@@ -21,7 +21,7 @@ including over ssh, and follow the size of the terminal window. The same sources
 also build on Windows with Visual Studio.</p>
 <div class="cards">
 <div class="card"><h3><a href="classes.html">Class reference</a></h3>
-<p>The class hierarchy and all 129 classes by area — views, menus, dialogs,
+<p>The class hierarchy and all 144 classes by area — views, menus, dialogs,
 editors, help, collections, streams, resources, system layer — each with an
 example.</p></div>
 <div class="card"><h3><a href="porting.html">Porting guide</a></h3>
@@ -33,8 +33,11 @@ Ctrl+B selection, go to line, incremental search, bracket pairs, mouse wheel),
 line numbers with marks, <code>TColoredEditor</code> for syntax colouring,
 <code>TYamlEditor</code>, the editor dialogs, <code>TLogView</code>,
 <code>TTableView</code> with sorting and marks, input lines with
-validators, tabs, a tree view, combo boxes, a progress dialog and settings
-kept between runs.</p></div>
+validators, tabs, a tree view, combo boxes, a progress dialog, settings
+kept between runs, a wizard, commands with their output, a command
+palette, a Markdown view, a date input with a calendar, a splitter, colour
+themes, toasts and syntax colouring for C/C++, shell, INI, JSON and
+Markdown.</p></div>
 </div>
 <h2>Quick start</h2>
 <p>Linux, with g++ and GNU make:</p>
@@ -54,7 +57,7 @@ bin/tvdemo.exe</code></pre>
 <tr><td><code>include/</code></td><td>Library headers (<code>tv.h</code> and the class headers); <code>include/compat/</code> holds stand-ins for Borland headers such as <code>dos.h</code>, <code>dir.h</code>, <code>iostream.h</code>.</td></tr>
 <tr><td><code>source/</code></td><td>Library sources; <code>source/platform/</code> is the new terminal driver: the shared part (screen output, key codes, code pages), <code>posix/</code> for Linux and <code>win32/</code> for the Windows console.</td></tr>
 <tr><td><code>demos/</code></td><td>TVDEMO, TVEDIT, TVFORMS (with the form generators), HELLO.</td></tr>
-<tr><td><code>addons/</code></td><td>New classes built on the library, in <code>lib/libtvaddons.a</code> with the header <code>tvaddons.h</code>: <code>TAdvancedEditor</code>, <code>TBlockIndicator</code>, <code>TLineNumbers</code>, <code>TColoredEditor</code>, <code>TYamlEditor</code>, <code>TYamlEditWindow</code>, <code>editorDialogs()</code>, <code>TLogView</code>, <code>TTableView</code>, <code>TTableHeader</code>, <code>TValidatedInputLine</code> and its validators (also IP address, network, mask, host, e-mail, password), <code>TProgressBar</code>, <code>TProgressDialog</code>, <code>TTabView</code>, <code>TTreeView</code>, <code>TComboBox</code>, <code>TComboButton</code>, <code>TAppSettings</code>; the <code>yamledit</code>, <code>validate</code> and <code>controls</code> demos and tests (<code>make check-addons</code>).</td></tr>
+<tr><td><code>addons/</code></td><td>New classes built on the library, in <code>lib/libtvaddons.a</code> with the header <code>tvaddons.h</code>: <code>TAdvancedEditor</code>, <code>TBlockIndicator</code>, <code>TLineNumbers</code>, <code>TColoredEditor</code>, <code>TYamlEditor</code>, <code>TYamlEditWindow</code>, <code>editorDialogs()</code>, <code>TLogView</code>, <code>TTableView</code>, <code>TTableHeader</code>, <code>TValidatedInputLine</code> and its validators (also IP address, network, mask, host, e-mail, password), <code>TProgressBar</code>, <code>TProgressDialog</code>, <code>TTabView</code>, <code>TTreeView</code>, <code>TComboBox</code>, <code>TComboButton</code>, <code>TAppSettings</code>, <code>TPage</code>, <code>TWizard</code>, <code>TProcess</code>, <code>TProcessView</code>, <code>TProcessDialog</code>, <code>TCommandPalette</code>, <code>TMarkdownView</code>, <code>TMarkdownWindow</code>, <code>TDateInput</code>, <code>TDateButton</code>, <code>TSplitter</code>, the themes, <code>TToast</code>, <code>TStatusMessageLine</code>, <code>TSyntaxEditor</code>, <code>TSyntaxEditWindow</code>; the <code>yamledit</code>, <code>validate</code> and <code>controls</code> demos and tests (<code>make check-addons</code>).</td></tr>
 <tr><td><code>docdemos/</code></td><td>The examples from the Turbo Vision guide (TVGUID01–19, TVG17B).</td></tr>
 <tr><td><code>help/</code></td><td>TVHC, the help compiler, and the demo help source.</td></tr>
 <tr><td><code>tools/</code></td><td><code>keytest</code>, tmux test scripts, the converter used for the port, this documentation's generator.</td></tr>

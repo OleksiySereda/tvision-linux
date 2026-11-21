@@ -106,11 +106,16 @@ bin/controls-test: obj/addons/tests/controls_test.o $(ADDLIB) $(LIB)
 	@mkdir -p bin
 	$(CXX) $(LDFLAGS) -o $@ $< $(LINKADD)
 
-check-addons: bin/yamlsyntax-test bin/advedit-test bin/widgets-test bin/controls-test
+bin/tools-test: obj/addons/tests/tools_test.o $(ADDLIB) $(LIB)
+	@mkdir -p bin
+	$(CXX) $(LDFLAGS) -o $@ $< $(LINKADD)
+
+check-addons: bin/yamlsyntax-test bin/advedit-test bin/widgets-test bin/controls-test bin/tools-test
 	bin/yamlsyntax-test
 	bin/advedit-test
 	bin/widgets-test
 	bin/controls-test
+	bin/tools-test
 
 obj/%.o: %.cpp
 	@mkdir -p $(dir $@)

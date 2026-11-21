@@ -122,7 +122,19 @@ library of their own (`lib/libtvaddons.a`, header `tvaddons.h`):
 - `TTreeView`: a tree that opens and closes, with marks;
 - `TComboBox` and `TComboButton`: an input line with a list;
 - `TAppSettings`: settings, window places, recent files and history kept
-  in an INI file (`bin/controls` shows these).
+  in an INI file;
+- `TWizard`: a dialog of steps with Back, Next and Finish;
+- `TProcess`, `TProcessView`, `TProcessDialog`: a command run through the
+  shell with its output shown as it comes, on Linux and Windows;
+- `TCommandPalette`: every command of the menu, found by typing;
+- `TMarkdownView`, `TMarkdownWindow`: Markdown laid out with headings,
+  lists, tables and links;
+- `TDateInput`, `TDateButton`: a date with a calendar;
+- `TSplitter`: a bar between two parts of a window;
+- colour themes (Classic, Dark, Light, High contrast);
+- `TToast`, `TStatusMessageLine`: messages that go away by themselves;
+- `TSyntaxEditor`, `TSyntaxEditWindow`: colours for C/C++, shell, INI/.env,
+  JSON and Markdown (`bin/controls` shows all of these).
 
 ### Environment variables
 

@@ -13,6 +13,17 @@
 /*                                                                         */
 /* ------------------------------------------------------------------------*/
 
+#if defined( Uses_TSyntaxEditWindow )
+#define Uses_TSyntaxEditor
+#define Uses_TYamlEditor
+#define Uses_TEditWindow
+#define Uses_TBlockIndicator
+#endif
+
+#if defined( Uses_TSyntaxEditor )
+#define Uses_TColoredEditor
+#endif
+
 #if defined( Uses_TYamlEditWindow )
 #define Uses_TYamlEditor
 #define Uses_TEditWindow
@@ -32,6 +43,53 @@
 #define Uses_TDialog
 #endif
 
+#if defined( Uses_TWizard )
+#define Uses_TPage
+#define Uses_TDialog
+#define Uses_TButton
+#endif
+
+#if defined( Uses_TProcessDialog )
+#define Uses_TProcessView
+#define Uses_TDialog
+#endif
+
+#if defined( Uses_TProcessView )
+#define Uses_TProcess
+#define Uses_TLogView
+#endif
+
+#if defined( Uses_TCommandPalette )
+#define Uses_TDialog
+#endif
+
+#if defined( Uses_TMarkdownWindow )
+#define Uses_TMarkdownView
+#define Uses_TWindow
+#endif
+
+#if defined( Uses_TMarkdownView )
+#define Uses_TScroller
+#endif
+
+#if defined( Uses_TDateInput )
+#define Uses_TDate
+#define Uses_TValidatedInputLine
+#endif
+
+#if defined( Uses_TDate )
+#define Uses_TValidator
+#endif
+
+#if defined( Uses_TSplitter )
+#define Uses_TView
+#endif
+
+#if defined( Uses_TToast ) || defined( Uses_TStatusMessageLine )
+#define Uses_TStatusLine
+#define Uses_TView
+#endif
+
 #if defined( Uses_TProgressDialog )
 #define Uses_TProgressBar
 #define Uses_TDialog
@@ -42,6 +100,10 @@
 #endif
 
 #if defined( Uses_TTabView )
+#define Uses_TPage
+#endif
+
+#if defined( Uses_TPage )
 #define Uses_TGroup
 #endif
 
@@ -97,6 +159,7 @@
 #include <yamledit.h>
 #include <editdlg.h>
 #include <validate.h>
+#include <page.h>
 #include <logview.h>
 #include <tableview.h>
 #include <progbar.h>
@@ -104,3 +167,13 @@
 #include <treeview.h>
 #include <combobox.h>
 #include <appsets.h>
+#include <wizard.h>
+#include <textconv.h>
+#include <tvproc.h>
+#include <cmdpal.h>
+#include <markdown.h>
+#include <dateedit.h>
+#include <splitter.h>
+#include <themes.h>
+#include <toast.h>
+#include <syntax.h>

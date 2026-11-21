@@ -14,6 +14,7 @@
 /*------------------------------------------------------------*/
 
 #define Uses_TTabView
+#define Uses_TPage
 #define Uses_TValidatedInputLine
 #define Uses_TGroup
 #define Uses_TDrawBuffer
@@ -24,38 +25,6 @@
 
 #include <ctype.h>
 #include <string.h>
-
-// the dialog's interior under the controls of a page
-class TPageBackground : public TView
-{
-
-public:
-
-    TPageBackground( const TRect& r ) : TView( r )
-    {
-        growMode = gfGrowHiX | gfGrowHiY;
-    }
-
-    virtual void draw()
-    {
-        TDrawBuffer b;
-        b.moveChar( 0, ' ', getColor( 1 ), size.x );    // as TFrame fills it
-        writeLine( 0, 0, size.x, size.y, b );
-    }
-};
-
-class TTabPage : public TGroup
-{
-
-public:
-
-    TTabPage( const TRect& r ) : TGroup( r )
-    {
-        options |= ofSelectable;
-        growMode = gfGrowHiX | gfGrowHiY;
-        insert( new TPageBackground( getExtent() ) );   // under everything
-    }
-};
 
 // the first line: the titles, the shown one in the button colours, the
 // others in the label colours, on a line
@@ -95,24 +64,6 @@ public:
     TTabView *tabs;
 };
 
-// the controls of a group that Tab goes through, in Tab order (the order
-// they were inserted in, as TGroup::selectNext( False ) goes)
-static std::vector<TView *> tabOrder( TGroup *g )
-{
-    std::vector<TView *> v;
-    TView *last = g->last;
-    if( last == 0 )
-        return v;
-    TView *p = last;
-    do  {
-        if( ( p->state & ( sfVisible | sfDisabled ) ) == sfVisible &&
-            ( p->options & ofSelectable ) != 0 )
-            v.push_back( p );
-        p = p->prev();
-        } while( p != last );
-    return v;
-}
-
 static char hotKey( const std::string& title )
 {
     size_t i = title.find( '~' );
@@ -136,9 +87,9 @@ void TTabView::shutDown()
     TGroup::shutDown();
 }
 
-TGroup *TTabView::addPage( const char *title )
+TPage *TTabView::addPage( const char *title )
 {
-    TTabPage *p = new TTabPage( TRect( 0, 1, size.x, size.y ) );
+    TPage *p = new TPage( TRect( 0, 1, size.x, size.y ) );
     if( !pages.empty() )
         p->hide();
     insert( p );
@@ -196,9 +147,7 @@ void TTabView::startPage( int i )
     if( i < 0 || i >= pageCount() || started[size_t( i )] )
         return;
     started[size_t( i )] = true;
-    std::vector<TView *> v = tabOrder( pages[i] );
-    if( !v.empty() )
-        v.front()->select();
+    pages[i]->focusFirst();
 }
 
 void TTabView::setState( ushort aState, Boolean enable )
@@ -222,21 +171,7 @@ Boolean TTabView::moveFocus( Boolean forwards )
 {
     if( shown < 0 )
         return False;
-    std::vector<TView *> v = tabOrder( pages[shown] );
-    if( v.empty() )
-        return False;
-    int at = -1;
-    for( size_t k = 0; k < v.size(); k++ )
-        if( v[k] == pages[shown]->current )
-            at = int( k );
-    int next = forwards == True ? at + 1 : ( at < 0 ? int( v.size() ) - 1 : at - 1 );
-    if( next >= 0 && next < int( v.size() ) )
-        {
-        v[next]->select();
-        return True;
-        }
-    v[forwards == True ? 0 : v.size() - 1]->select();
-    return False;
+    return pages[shown]->focusNext( forwards );
 }
 
 void TTabView::handleEvent( TEvent& event )
@@ -286,28 +221,10 @@ void TTabView::handleEvent( TEvent& event )
     TGroup::handleEvent( event );
 }
 
-// the first wrong validated line of page i, in Tab order, or 0
-static TValidatedInputLine *firstInvalid( TGroup *page )
-{
-    TView *last = page->last;
-    if( last == 0 )
-        return 0;
-    TView *p = last;
-    do  {
-        TValidatedInputLine *l = dynamic_cast<TValidatedInputLine *>( p );
-        if( l != 0 && l->validator != 0 && ( l->state & sfDisabled ) == 0 &&
-            !( l->validator->allowEmpty == True && l->data[0] == 0 ) &&
-            !l->validator->isValid( l->data ) )
-            return l;
-        p = p->prev();
-        } while( p != last );
-    return 0;
-}
-
 int TTabView::pageWithInvalidLine( ushort )
 {
     for( int i = 0; i < pageCount(); i++ )
-        if( firstInvalid( pages[i] ) != 0 )
+        if( pages[i]->firstInvalid() != 0 )
             return i;
     return -1;
 }
@@ -322,10 +239,10 @@ Boolean TTabView::valid( ushort command )
     if( i >= 0 )
         {
         selectPage( i );
-        return firstInvalid( pages[i] )->valid( command );
+        return pages[i]->firstInvalid()->valid( command );
         }
     for( i = 0; i < pageCount(); i++ )
-        if( !pages[i]->valid( command ) )
+        if( !pages[i]->validPage( command ) )
             {
             selectPage( i );
             return False;

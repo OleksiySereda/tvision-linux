@@ -919,6 +919,110 @@ settings.restoreWindow( "editor", window );
 settings.addRecent( fileName );
 settings.saveWindow( "editor", window );
 settings.save();'''),
+
+("TPage", "page.h", ["TGroup"], "Uses_TPage",
+ "A group for the controls of one page of <code>TTabView</code> or <code>TWizard</code>: "
+ "the dialog's background under them, <code>tabOrder()</code>, <code>firstInvalid()</code>, "
+ "<code>validPage()</code> (fields checked from the top), <code>focusFirst()</code>, "
+ "<code>focusNext()</code>.",
+r"""TPage *p = tabs->addPage( "~G~eneral" );
+p->insert( new TInputLine( TRect( 15, 1, 47, 2 ), 31 ) );"""),
+
+("TWizard", "wizard.h", ["TDialog"], "Uses_TWizard",
+ "A dialog of steps: <code>addPage()</code>, Back, Next (which checks the page and "
+ "<code>canLeave()</code>), Finish on the last page, \"Step 2 of 3\" on top; "
+ "<code>pageShown()</code> fills a page from the ones before. The data take every page.",
+r"""TWizard *w = new TWizard( TRect( 0, 0, 60, 18 ), "Install" );
+TPage *p = w->addPage( "Where to" );
+p->insert( new TInputLine( TRect( 15, 1, 50, 2 ), 61 ) );
+w->addPage( "Options" );
+deskTop->execView( w );"""),
+
+("TProcess", "tvproc.h", [], "Uses_TProcess",
+ "A command run through the shell (<code>/bin/sh -c</code>, <code>cmd.exe /c</code>) with "
+ "its output in a pipe read without waiting: <code>start( command, dir, env )</code>, "
+ "<code>read()</code>, <code>running()</code>, <code>exitCode()</code>, <code>stop()</code> "
+ "(the process group, a job object on Windows).",
+r"""TProcess p;
+p.start( "make -j4", "/home/me/shop" );
+while( p.running() )
+    out += p.read();"""),
+
+("TProcessView", "tvproc.h", ["TLogView"], "Uses_TProcessView",
+ "A <code>TLogView</code> with the output of a command as it comes, in the code page of "
+ "the screen, and its exit code; <code>poll()</code> reads it (from <code>idle()</code>).",
+r"""view->start( "ping -c 3 127.0.0.1" );
+...
+void TMyApp::idle() { TApplication::idle(); view->poll(); }"""),
+
+("TProcessDialog", "tvproc.h", ["TDialog"], "Uses_TProcessDialog",
+ "Runs a command in a dialog with its output, a status line, Stop and Close; "
+ "<code>run()</code> returns the exit code.",
+r"""int code = TProcessDialog::run( "Build", "make -j4" );"""),
+
+("TCommandPalette", "cmdpal.h", ["TDialog"], "Uses_TCommandPalette",
+ "The commands of the menu bar with their path and key, found by typing a part of the "
+ "name (word starts first, then letters in order); <code>run()</code> puts the chosen one "
+ "into the queue.",
+r"""case cmPalette:
+    TCommandPalette::run();
+    break;"""),
+
+("TMarkdownView", "markdown.h", ["TScroller"], "Uses_TMarkdownView",
+ "Markdown laid out for the width of the view: headings, wrapped paragraphs, bold, code, "
+ "lists, quotes, code blocks, tables; Tab goes between links, Enter follows "
+ "<code>#anchors</code> (others: <code>cmMarkdownLink</code>).",
+r"""TMarkdownView *v = new TMarkdownView( r, hScroll, vScroll );
+v->loadFile( "README.md" );
+v->gotoAnchor( "#building" );"""),
+
+("TMarkdownWindow", "markdown.h", ["TWindow"], "Uses_TMarkdownWindow",
+ "A window with a <code>TMarkdownView</code> of a file and its scroll bars.",
+r"""deskTop->insert( validView( new TMarkdownWindow( deskTop->getExtent(), "README.md" ) ) );"""),
+
+("TDateInput", "dateedit.h", ["TValidatedInputLine"], "Uses_TDateInput",
+ "An input line for a date (YYYY-MM-DD, DD.MM.YYYY or MM/DD/YYYY) that puts in the "
+ "separators itself and wants a real date; Down or F4 opens a calendar (Monday first). "
+ "<code>date()</code>, <code>setDate()</code>; <code>TDate</code> counts days and months.",
+r"""TDateInput *d = new TDateInput( TRect( 15, 7, 28, 8 ), dfDMY );
+dlg->insert( d );
+dlg->insert( new TDateButton( TRect( 28, 7, 31, 8 ), d ) );"""),
+
+("TDateButton", "dateedit.h", ["TView"], "Uses_TDateInput",
+ "The arrow right of a <code>TDateInput</code>: a click opens the calendar.",
+r"""dlg->insert( new TDateButton( TRect( 28, 7, 31, 8 ), d ) );"""),
+
+("TSplitter", "splitter.h", ["TView"], "Uses_TSplitter",
+ "A bar between two parts of a window that the mouse drags; the views of each side are "
+ "resized or moved with it, within <code>minFirst</code> / <code>minSecond</code>; "
+ "<code>save()</code> and <code>restore()</code> keep it in <code>TAppSettings</code>.",
+r"""TSplitter *s = new TSplitter( TRect( 30, 1, 31, h - 1 ), True );
+s->addFirst( tree );
+s->addSecond( text );
+insert( s );"""),
+
+("TToast", "toast.h", ["TView"], "Uses_TToast",
+ "A short message at the bottom right of the desktop that goes away by itself "
+ "(<code>show( text, kind, seconds )</code>; info, success, warning, error); the program "
+ "calls <code>TToast::idle()</code> from its <code>idle()</code>.",
+r"""TToast::show( "Saved", TToast::tkSuccess );"""),
+
+("TStatusMessageLine", "toast.h", ["TStatusLine"], "Uses_TStatusMessageLine",
+ "A status line that shows <code>message( text, seconds )</code> in place of its keys for "
+ "a while.",
+r"""( (TStatusMessageLine *) statusLine )->message( "Copied 3 lines" );"""),
+
+("TSyntaxEditor", "syntax.h", ["TColoredEditor"], "Uses_TSyntaxEditor",
+ "Colours for C/C++, shell, INI/.env, JSON and Markdown, chosen by the file name "
+ "(<code>languageFor()</code>) or <code>setLanguage()</code>; block comments and code "
+ "fences over several lines are followed. Colour themes are in <code>themes.h</code>: "
+ "<code>applyTheme( thDark )</code>, <code>themeMenu()</code>.",
+r"""TSyntaxEditor *ed = new TSyntaxEditor( r, h, v, ind, "deploy.sh" );"""),
+
+("TSyntaxEditWindow", "syntax.h", ["TEditWindow"], "Uses_TSyntaxEditWindow",
+ "A <code>TEditWindow</code> whose editor colours the file: a <code>TSyntaxEditor</code>, "
+ "or a <code>TYamlEditor</code> for YAML.",
+r"""deskTop->insert( validView( new TSyntaxEditWindow( r, "config.ini", wnNoNumber ) ) );"""),
 ])
 
 # --------------------------------------------------------------------------
