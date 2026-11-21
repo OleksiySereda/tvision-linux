@@ -1,10 +1,12 @@
-# Turbo Vision 1.0 for Linux (GCC, C++11)
+# Turbo Vision 1.0 for Linux (GCC, C++11) and Windows (MSVC)
 
 A port of the Borland Turbo Vision library (Borland C++ 3.1, DOS) to Linux.
 Programs run in any xterm-compatible terminal, including over ssh. They detect
-the window size themselves and re-layout when the window is resized.
+the window size themselves and re-layout when the window is resized. The same
+sources also build on Windows 10 and later with Visual Studio, where the
+programs run in the console (see [Windows](#windows)).
 
-The original files (`../INCLUDE`, `../SOURCE`, `../DEMOS`, ...) are left unchanged. Everything ported lives in this directory.
+The original files (`../tvision-original/INCLUDE`, `../tvision-original/SOURCE`, `../tvision-original/DEMOS`, ...) are left unchanged. Everything ported lives in this directory.
 
 ## Origin
 
@@ -122,10 +124,16 @@ code-page byte. Characters missing from the code page are ignored.
 - **Mouse:** the xterm SGR protocol (1006) with button and drag tracking (1002). Double clicks and auto-repeat work. The wheel gives `evMouseWheel` events (see below); TV 1.0 had no wheel, so its own views ignore them.
 - **Output:** compared with the previous frame, so only changed cells are sent. When nothing changes the program writes nothing, so there is no ssh traffic.
 - **Diagnostics:** `bin/keytest` shows which key codes and mouse events your terminal sends.
+- **Windows console:** the same output (escape sequences, UTF-8, only changed
+  cells). Keys and the mouse come as console events (`ReadConsoleInput`) and
+  are turned into the same codes; Shift, Ctrl and Alt are known with every key.
+  The size is that of the visible window. If stdin or stdout is redirected, the
+  driver opens the console itself (`CONIN$`, `CONOUT$`). Ctrl-Break and closing
+  the window restore the console.
 
 ## Differences from the DOS version
 
-- **Paths:** the separator is `/`, there are no drives, and the directory tree starts at `/`. `*.*` means "all files". `~/` expands to `$HOME`. File names are case-sensitive.
+- **Paths:** the separator is `/`, there are no drives, and the directory tree starts at `/`. `*.*` means "all files". `~/` expands to `$HOME`. File names are case-sensitive. On Windows paths have drives and are written with `/` inside the library (`C:/Users/...`); the tree starts at `C:/`, and `~/` is `%USERPROFILE%` when `HOME` is not set; `rootLength()` in `tvcompat.h` gives the length of the root (`/`, `C:/`).
 - **TFileEditor:**
   - LF files are converted to CR LF on load and saved back with LF. CR LF files are saved as they were.
   - A UTF-8 file whose characters all exist in the code page is edited in that code page and saved as UTF-8. Otherwise the file is edited byte for byte.
@@ -188,3 +196,7 @@ Development and testing were done in Docker (`gcc:13` + tmux):
 sh tools/smoketest.sh
 sh tools/tmuxrun.sh bin/tvdemo 100 30 keys:F10 keys:Down shot resize:60x20 shot keys:M-x
 ```
+
+On Windows `ctest --test-dir build -C Release` runs the tests of the add-ons;
+`tvhc` there compiles `help/demohelp.txt` into a file equal to the DOS
+`DEMOHELP.HLP` as well.

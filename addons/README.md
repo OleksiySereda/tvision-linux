@@ -1,8 +1,9 @@
 # Turbo Vision add-ons
 
-New classes for the Linux port of Turbo Vision. They are built into a library
-of their own, `lib/libtvaddons.a`, and are used the way the library classes
-are: a `Uses_` macro and one header.
+New classes for the Linux port of Turbo Vision (also built on Windows). They
+are built into a library of their own, `lib/libtvaddons.a` (`lib/tvaddons.lib`
+on Windows), and are used the way the library classes are: a `Uses_` macro and
+one header.
 
 ```cpp
 #define Uses_TYamlEditWindow
@@ -14,8 +15,15 @@ g++ -std=c++11 -Ipath/include -Ipath/include/compat -Ipath/addons/include app.cp
     -Wl,--whole-archive path/lib/libtvaddons.a path/lib/libtv.a -Wl,--no-whole-archive -o app
 ```
 
-`make` (or `make lib`) in `linux/` builds both libraries; `make check-addons`
-runs the tests of the add-ons.
+`make` (or `make lib`) in `tvision/` builds both libraries; `make check-addons`
+runs the tests of the add-ons. On Windows, `CMakeLists.txt` builds them; a
+program links them with `/WHOLEARCHIVE`, which the CMake target `tvaddons`
+brings along:
+
+```cmake
+add_subdirectory( path/to/tvision tvision EXCLUDE_FROM_ALL )
+tv_addons_program( app app.cpp )
+```
 
 | Directory | Contents |
 |---|---|

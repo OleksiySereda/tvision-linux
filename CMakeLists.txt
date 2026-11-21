@@ -10,7 +10,7 @@
 #
 # Another project uses the libraries with
 #
-#   add_subdirectory( path/to/linux tvision EXCLUDE_FROM_ALL )
+#   add_subdirectory( path/to/tvision tvision EXCLUDE_FROM_ALL )
 #   tv_addons_program( app app.cpp )     # or target_link_libraries( app tvaddons )
 #
 # The targets tv and tvaddons carry their include paths, compiler options

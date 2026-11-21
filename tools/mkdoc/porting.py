@@ -51,7 +51,7 @@ make check-help # compiles help/demohelp.txt and compares it with the DOS DEMOHE
 make clean'''),
 H("""<p>To build your own program, add both include directories and link the archive
 with <code>--whole-archive</code>:</p>"""),
-C('''TV = /path/to/linux
+C('''TV = /path/to/tvision
 
 g++ -std=c++11 -I$(TV)/include -I$(TV)/include/compat -c myapp.cpp
 g++ -o myapp myapp.o -Wl,--whole-archive $(TV)/lib/libtv.a -Wl,--no-whole-archive'''),
@@ -85,7 +85,7 @@ Another project uses the libraries through <code>add_subdirectory</code>; the
 targets <code>tv</code> and <code>tvaddons</code> bring their include
 directories, compiler options and <code>/WHOLEARCHIVE</code> (the Windows form of
 <code>--whole-archive</code>) with them:</p>"""),
-C('''add_subdirectory( path/to/linux tvision EXCLUDE_FROM_ALL )
+C('''add_subdirectory( path/to/tvision tvision EXCLUDE_FROM_ALL )
 tv_addons_program( myapp myapp.cpp )         # or: tv_program( myapp myapp.cpp )
 # or: add_executable( myapp myapp.cpp )  target_link_libraries( myapp PRIVATE tvaddons )'''),
 H("""<p>The programs run in Windows Terminal and in the console window

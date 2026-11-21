@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generates the HTML documentation in linux/doc/.
+"""Generates the HTML documentation in tvision/doc/.
 
     python tools/mkdoc/mkdoc.py
 
@@ -311,13 +311,13 @@ editor dialogs (Find, Replace, Save as).</p></div>
 </div>
 <h2>Quick start</h2>
 <p>Linux, with g++ and GNU make:</p>
-{code('''cd linux
+{code('''cd tvision
 make                    # lib/libtv.a, lib/libtvaddons.a and the demos in bin/
 cd bin && ./tvdemo      # Alt-X quits
 ./yamledit ../addons/demos/sample.yaml   # the YAML editor of the add-ons''')}
 <p>Windows 10 or later, with Visual Studio 2022 or later (see
 <a href="porting.html#windows">Building on Windows</a>):</p>
-{code('''cd linux
+{code('''cd tvision
 cmake -B build
 cmake --build build --config Release    # lib/tv.lib, lib/tvaddons.lib, bin/*.exe
 bin/tvdemo.exe''')}

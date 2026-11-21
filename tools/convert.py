@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """One-shot mechanical conversion of the Borland Turbo Vision sources to a
-GCC-friendly tree under linux/.
+GCC-friendly tree under tvision/.
 
   * file names are lowercased, CRLF -> LF, trailing ^Z removed
   * #include names are lowercased, '\\' -> '/'
@@ -11,7 +11,8 @@ GCC-friendly tree under linux/.
   * high-bit (CP437) bytes inside string/char literals become octal escapes,
     inside comments they are re-encoded as UTF-8
 
-Usage:  python tools/convert.py <original-root> <linux-root>
+Usage:  python tools/convert.py <original-root> <tvision-root>
+        (here: python tools/convert.py ../tvision-original .)
 Already existing destination files are NOT overwritten unless --force.
 """
 

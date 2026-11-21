@@ -1,6 +1,6 @@
 #!/bin/sh
 # Starts every program in bin/ inside tmux, checks that it draws a screen
-# and exits cleanly on Alt-X.  Run from the linux/ directory.
+# and exits cleanly on Alt-X.  Run from the tvision/ directory.
 #
 # The docdemos are started in docdemos/, because several of them display
 # their own source file.
