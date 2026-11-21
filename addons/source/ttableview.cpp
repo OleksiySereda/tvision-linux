@@ -452,11 +452,7 @@ void TTableView::handleEvent( TEvent& event )
             return;
             }
         if( event.keyDown.keyCode == kbEnter )
-            {
-            selectItem( focused );
-            clearEvent( event );
-            return;
-            }
+            selectItem( focused );      // the dialog still gets Enter
         }
     TListViewer::handleEvent( event );
 }

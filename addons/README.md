@@ -33,6 +33,7 @@ tv_addons_program( app app.cpp )
 | `demos/` | Programs that show them (`bin/...`) |
 | `tests/` | Tests (`make check-addons`; `ctest` on Windows) |
 | `demos/validate.cpp` | `bin/validate`: a form with every validator |
+| `demos/controls.cpp` | `bin/controls`: tabs, combo boxes, a tree, a progress dialog, settings |
 
 To add a class: put its declaration into a header in `include/` under
 `#if defined( Uses_TName ) && !defined( __TName )`, the dependencies of
@@ -335,6 +336,155 @@ A validator of its own derives from `TValidator` and overrides
 `isValidInput()` (while typing), `isValid()` and `errorText()`. The line owns
 its validator; `setValidator()` changes it. The data stay text, as for a
 `TInputLine`; the line is written to a stream as a plain `TInputLine`.
+
+## TProgressBar, TProgressDialog
+
+`TProgressBar` fills from the left as its value goes from 0 to the total,
+with the percentage (or a text given with `setText()`) in the middle.
+`TProgressDialog` is a dialog with a line of text, a bar and Cancel, for
+work that takes a while. A loop of the program runs it:
+
+```cpp
+#define Uses_TProgressDialog
+#include <tvaddons.h>
+
+TProgressDialog *d = new TProgressDialog( "Copying", n );
+TProgram::deskTop->insert( d );
+for( int i = 0; i < n && !d->cancelled(); i++ )
+    {
+    d->setText( names[i] );
+    copy( names[i] );
+    d->setValue( i + 1 );
+    }
+TObject::destroy( d );
+```
+
+`cancelled()` takes the events that came in meanwhile (Cancel, Esc, a
+resized terminal), without waiting for more, at most every `pollMs` (50)
+milliseconds; only the dialog gets them. A dialog run with `execView()`
+instead, while the work goes on in `idle()`, ends with `finish()` (cmOK)
+or Cancel (cmCancel).
+
+## TTabView
+
+Pages with tabs over them, in a dialog:
+
+```cpp
+#define Uses_TTabView
+#include <tvaddons.h>
+
+TTabView *tabs = new TTabView( TRect( 2, 1, 62, 15 ) );
+TGroup *p = tabs->addPage( "~G~eneral" );
+p->insert( new TInputLine( TRect( 15, 1, 47, 2 ), 31 ) );   // in the page's coordinates
+p = tabs->addPage( "~N~etwork" );
+...
+d->insert( tabs );
+```
+
+- A click on a title, Alt and its highlighted letter, or Ctrl+PgDn /
+  Ctrl+PgUp show a page; it broadcasts `cmTabChanged`.
+- Tab and Shift+Tab go through the controls of the page, then on to the
+  dialog's buttons; coming back, the page starts at its first control.
+- `getData()` / `setData()` of the dialog take every page, in the order
+  they were added, so one (packed) record holds the whole dialog.
+- When the dialog is closed with OK, the page of the first wrong field is
+  shown before its message, and within a page the fields are checked from
+  the top.
+
+The titles and the background of a page are views of their own, so a
+closed list or message box leaves nothing behind (a `TGroup` only draws
+its subviews).
+
+## TTreeView
+
+A tree of lines that open and close (`TOutline` came only with Turbo
+Vision 2.0):
+
+```cpp
+#define Uses_TTreeView
+#include <tvaddons.h>
+
+TTreeView *tree = new TTreeView( TRect( 2, 2, 41, 15 ), 0, vScrollBar );
+tree->markable = True;
+TTreeNode *web = tree->addNode( 0, "web" );
+tree->addNode( web, "web1" );
+tree->addNode( web, "web2" );
+```
+
+```
+- [-] production
+  ├─- [-] web
+  │ ├── [x] web1
+  │ └── [ ] web2
+  └─+ [ ] db
+```
+
+- Right or `+` opens a node (or goes into it), Left or `-` closes it (or
+  goes to the parent), `*` opens all of it, a click on `+`/`-` too.
+- With `markable`, Space or a click on the box marks a node with all its
+  children; a partly marked node shows `[-]`; `markedLeaves()` gives the
+  marked nodes without children.
+- Enter and a double click broadcast `cmListItemSelected`; Enter goes on
+  to the default button.
+- `TTreeNode` holds `text`, `data` (the program's), `parent`, `children`,
+  `expanded` and `marked`; the view owns the nodes.
+
+## TComboBox, TComboButton
+
+An input line with a list to choose from:
+
+```cpp
+#define Uses_TComboBox
+#include <tvaddons.h>
+
+TComboBox *env = new TComboBox( TRect( 15, 3, 28, 4 ), 11, "dev|test|staging|prod" );
+env->setListOnly( True );               // only an item of the list
+d->insert( env );
+d->insert( new TComboButton( TRect( 28, 3, 31, 4 ), env ) );
+```
+
+Down in the line or a click on the button opens the list (like the list of
+`THistory`); Enter or a double click takes an item. With `setListOnly()`
+the text must be one of the items when the dialog is closed (in any case;
+it then gets the case of the item). It is a `TValidatedInputLine`, so a
+validator can be used instead.
+
+## TAppSettings
+
+What a program keeps from one run to the next, in an INI file
+(`$XDG_CONFIG_HOME/<name>/settings.ini`, that is `~/.config/...`, on Linux;
+`%APPDATA%/<name>/settings.ini` on Windows):
+
+```cpp
+#define Uses_TAppSettings
+#include <tvaddons.h>
+
+TAppSettings settings( "myapp" );       // reads the file
+settings.restoreWindow( "editor", window );
+settings.set( "general", "theme", "dark" );
+settings.addRecent( fileName );
+...
+settings.saveWindow( "editor", window );
+settings.save();
+```
+
+- `get()` / `set()`, `getInt()` / `setInt()`, `getBool()` / `setBool()`
+  (yes/no, true/false, 1/0), `has()`, `remove()`, `removeSection()`.
+- `saveWindow()` / `restoreWindow()`: the place and size of a view; a
+  window larger than the screen is made to fit.
+- The recent files: `addRecent()` puts a file first, at most `maxRecent`
+  (8); `recentMenu( firstCommand, next )` makes the menu items "~1~ name"
+  ... for them.
+- `saveHistory( id )` / `loadHistory( id )`: the lists of `THistory`.
+- `savePalette()` / `loadPalette()`: the colours of the application, e.g.
+  after `TColorDialog`.
+- `save()` writes a new file and renames it over the old one; comments and
+  unknown lines stay where they were.
+
+`bin/controls` (`addons/demos/controls.cpp`) uses all of these: a settings
+dialog with three pages, combo boxes and validated lines, a tree of
+servers, a progress dialog, the recent files in the File menu, and the
+settings and dialog positions kept between runs.
 
 ## TYamlEditor, TYamlEditWindow
 

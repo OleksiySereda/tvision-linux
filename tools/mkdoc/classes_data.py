@@ -846,6 +846,79 @@ TValidatedInputLine *pw = new TValidatedInputLine( TRect( 3, 6, 34, 7 ), 31,
                                                    new TPasswordValidator );
 pw->password = True;
 d->insert( pw );'''),
+
+("TProgressBar", "progbar.h", ["TView"], "Uses_TProgressBar",
+ "A bar that fills as <code>setValue()</code> goes from 0 to the total "
+ "(<code>setTotal()</code>), with the percentage or <code>setText()</code> in the "
+ "middle; <code>percent()</code>.",
+r'''TProgressBar *bar = new TProgressBar( TRect( 3, 4, 47, 5 ), files );
+d->insert( bar );
+bar->setValue( done );'''),
+
+("TProgressDialog", "progbar.h", ["TDialog"], "Uses_TProgressDialog",
+ "A dialog with a line of text, a <code>TProgressBar</code> and Cancel. A loop "
+ "calls <code>cancelled()</code> between its steps: it takes the waiting events "
+ "(Cancel, Esc, a resized terminal) without waiting for more. Run with "
+ "<code>execView()</code>, <code>finish()</code> ends it with cmOK.",
+r'''TProgressDialog *d = new TProgressDialog( "Copying", n );
+TProgram::deskTop->insert( d );
+for( int i = 0; i < n && !d->cancelled(); i++ )
+    {
+    d->setText( names[i] );
+    copy( names[i] );
+    d->setValue( i + 1 );
+    }
+TObject::destroy( d );'''),
+
+("TTabView", "tabview.h", ["TGroup"], "Uses_TTabView",
+ "Pages with tabs over them, in a dialog: <code>addPage( \"~N~etwork\" )</code> "
+ "returns a group for the controls of the page. A click, Alt+letter or "
+ "Ctrl+PgDn/PgUp shows a page (<code>cmTabChanged</code>); Tab goes through the "
+ "page, then on; the dialog's data take every page; on OK the page of a wrong "
+ "field is shown first.",
+r'''TTabView *tabs = new TTabView( TRect( 2, 1, 62, 15 ) );
+TGroup *p = tabs->addPage( "~G~eneral" );
+p->insert( new TInputLine( TRect( 15, 1, 47, 2 ), 31 ) );
+p = tabs->addPage( "~N~etwork" );
+d->insert( tabs );'''),
+
+("TTreeView", "treeview.h", ["TListViewer"], "Uses_TTreeView",
+ "A tree of <code>TTreeNode</code>s that open and close (Right/Left, +/-, *, "
+ "a click), drawn with lines; with <code>markable</code>, check boxes that mark "
+ "a node with its children (<code>[-]</code> when partly marked, "
+ "<code>markedLeaves()</code>).",
+r'''TTreeView *tree = new TTreeView( TRect( 2, 2, 41, 15 ), 0, vScroll );
+tree->markable = True;
+TTreeNode *web = tree->addNode( 0, "web" );
+tree->addNode( web, "web1" );
+tree->addNode( web, "web2" );'''),
+
+("TComboBox", "combobox.h", ["TValidatedInputLine"], "Uses_TComboBox",
+ "An input line with a list (<code>setItems( \"a|b|c\" )</code>, "
+ "<code>addItem()</code>) that Down or a <code>TComboButton</code> opens; with "
+ "<code>setListOnly( True )</code> only an item of the list is valid.",
+r'''TComboBox *env = new TComboBox( TRect( 15, 3, 28, 4 ), 11, "dev|test|prod" );
+env->setListOnly( True );
+d->insert( env );
+d->insert( new TComboButton( TRect( 28, 3, 31, 4 ), env ) );'''),
+
+("TComboButton", "combobox.h", ["TView"], "Uses_TComboBox",
+ "The arrow right of a <code>TComboBox</code> (as <code>THistory</code>'s): a click "
+ "opens the list.",
+r'''d->insert( new TComboButton( TRect( 28, 3, 31, 4 ), env ) );'''),
+
+("TAppSettings", "appsets.h", [], "Uses_TAppSettings",
+ "Settings kept in an INI file (<code>~/.config/&lt;name&gt;/settings.ini</code>, "
+ "<code>%APPDATA%</code> on Windows): <code>get()</code>/<code>set()</code> and "
+ "numbers and yes/no, the places of windows (<code>saveWindow()</code>, "
+ "<code>restoreWindow()</code>), the recent files with a menu "
+ "(<code>addRecent()</code>, <code>recentMenu()</code>), the <code>THistory</code> "
+ "lists and the colours. <code>save()</code> replaces the file whole; comments stay.",
+r'''TAppSettings settings( "myapp" );
+settings.restoreWindow( "editor", window );
+settings.addRecent( fileName );
+settings.saveWindow( "editor", window );
+settings.save();'''),
 ])
 
 # --------------------------------------------------------------------------

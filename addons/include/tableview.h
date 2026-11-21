@@ -22,7 +22,7 @@
 /*     a click in the first column too; the marked rows show a check       */
 /*     mark and the "selected" colour;                                     */
 /*   - Enter and a double click broadcast cmListItemSelected, as           */
-/*     TListViewer does.                                                   */
+/*     TListViewer does; Enter goes on to the default button too.          */
 /*                                                                         */
 /*   Rows are counted in the order they were added (row); the place on     */
 /*   the screen, after sorting, is an item (TListViewer's focused,         */

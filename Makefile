@@ -56,7 +56,7 @@ ADDOBJ   := $(patsubst %.cpp,obj/%.o,$(ADDSRC))
 LINKADD  := -Wl,--whole-archive $(ADDLIB) $(LIB) -Wl,--no-whole-archive
 
 PROGRAMS := bin/tvdemo bin/tvedit bin/hello bin/keytest \
-            bin/tvforms bin/genphone bin/genparts bin/tvhc bin/yamledit bin/validate \
+            bin/tvforms bin/genphone bin/genparts bin/tvhc bin/yamledit bin/validate bin/controls \
             $(patsubst docdemos/%.cpp,bin/%,$(DOCDEMOS))
 
 all: lib $(PROGRAMS) bin/demohelp.hlp bin/phonenum.tvf bin/parts.tvf
@@ -80,6 +80,11 @@ bin/yamledit: obj/addons/demos/yamledit.o obj/demos/tvedit2.o obj/demos/tvedit3.
 	@mkdir -p bin
 	$(CXX) $(LDFLAGS) -o $@ $(filter %.o,$^) $(LINKADD)
 
+# CONTROLS: tabs, combo boxes, a tree, a progress dialog, settings
+bin/controls: obj/addons/demos/controls.o $(ADDLIB) $(LIB)
+	@mkdir -p bin
+	$(CXX) $(LDFLAGS) -o $@ $< $(LINKADD)
+
 # VALIDATE: a dialog with the validators of the add-ons
 bin/validate: obj/addons/demos/validate.o $(ADDLIB) $(LIB)
 	@mkdir -p bin
@@ -97,10 +102,15 @@ bin/widgets-test: obj/addons/tests/widgets_test.o $(ADDLIB) $(LIB)
 	@mkdir -p bin
 	$(CXX) $(LDFLAGS) -o $@ $< $(LINKADD)
 
-check-addons: bin/yamlsyntax-test bin/advedit-test bin/widgets-test
+bin/controls-test: obj/addons/tests/controls_test.o $(ADDLIB) $(LIB)
+	@mkdir -p bin
+	$(CXX) $(LDFLAGS) -o $@ $< $(LINKADD)
+
+check-addons: bin/yamlsyntax-test bin/advedit-test bin/widgets-test bin/controls-test
 	bin/yamlsyntax-test
 	bin/advedit-test
 	bin/widgets-test
+	bin/controls-test
 
 obj/%.o: %.cpp
 	@mkdir -p $(dir $@)

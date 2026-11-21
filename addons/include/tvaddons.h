@@ -32,6 +32,31 @@
 #define Uses_TDialog
 #endif
 
+#if defined( Uses_TProgressDialog )
+#define Uses_TProgressBar
+#define Uses_TDialog
+#endif
+
+#if defined( Uses_TProgressBar )
+#define Uses_TView
+#endif
+
+#if defined( Uses_TTabView )
+#define Uses_TGroup
+#endif
+
+#if defined( Uses_TTreeView )
+#define Uses_TListViewer
+#endif
+
+#if defined( Uses_TComboBox )
+#define Uses_TValidatedInputLine
+#endif
+
+#if defined( Uses_TAppSettings )
+#define Uses_TMenuItem
+#endif
+
 #if defined( Uses_TValidatedInputLine )
 #define Uses_TValidator
 #define Uses_TInputLine
@@ -74,3 +99,8 @@
 #include <validate.h>
 #include <logview.h>
 #include <tableview.h>
+#include <progbar.h>
+#include <tabview.h>
+#include <treeview.h>
+#include <combobox.h>
+#include <appsets.h>
