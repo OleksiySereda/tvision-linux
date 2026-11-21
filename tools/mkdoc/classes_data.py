@@ -830,13 +830,22 @@ insert( new TTableHeader( TRect( 2, 2, 60, 3 ), t ) );'''),
  "anything but Cancel shows why a text is wrong and keeps the dialog open. "
  "Validators: <code>TFilterValidator</code>, <code>TRangeValidator</code>, "
  "<code>TLookupValidator</code>, <code>TRegexValidator</code> "
- "(<code>std::regex</code>), <code>TFuncValidator</code>; their base "
- "<code>TValidator</code> has <code>isValidInput()</code>, <code>isValid()</code>, "
- "<code>errorText()</code> and <code>allowEmpty</code>.",
-r'''d->insert( new TValidatedInputLine( TRect( 3, 2, 12, 3 ), 5,
+ "(<code>std::regex</code>), <code>TFuncValidator</code>, and for networks and "
+ "accounts <code>TIPAddressValidator</code>, <code>TNetworkValidator</code> "
+ "(10.0.0.0/8), <code>TNetMaskValidator</code> (255.255.255.0 or /24), "
+ "<code>THostValidator</code>, <code>TEmailValidator</code> and "
+ "<code>TPasswordValidator</code> (length, digits, upper and lower case, symbols); "
+ "their base <code>TValidator</code> has <code>isValidInput()</code>, <code>isValid()</code>, "
+ "<code>errorText()</code> and <code>allowEmpty</code>. With <code>password = True</code> "
+ "the line shows stars. <code>bin/validate</code> is a form with all of them.",
+r'''d->insert( new TValidatedInputLine( TRect( 3, 2, 12, 3 ), 6,   // 5 characters + 0
                new TRangeValidator( 1, 65535 ) ) );
-d->insert( new TValidatedInputLine( TRect( 3, 4, 12, 5 ), 5,
-               new TLookupValidator( "yes|no" ) ) );'''),
+d->insert( new TValidatedInputLine( TRect( 3, 4, 22, 5 ), 16,
+               new TIPAddressValidator ) );
+TValidatedInputLine *pw = new TValidatedInputLine( TRect( 3, 6, 34, 7 ), 31,
+                                                   new TPasswordValidator );
+pw->password = True;
+d->insert( pw );'''),
 ])
 
 # --------------------------------------------------------------------------

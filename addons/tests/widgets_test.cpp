@@ -210,6 +210,81 @@ static void testValidators()
     check( v->validate( "" ), "allowEmpty" );
     delete v;
 
+    // IPv4 addresses
+    TIPAddressValidator ipv4;
+    unsigned long addr = 0;
+    check( TIPAddressValidator::parse( "192.168.0.1", addr ) && addr == 0xC0A80001UL,
+           "ip: parse gives the address" );
+    check( ipv4.isValid( "0.0.0.0" ) && ipv4.isValid( "255.255.255.255" ), "ip: the ends" );
+    check( !ipv4.isValid( "256.1.1.1" ) && !ipv4.isValid( "1.2.3" ) && !ipv4.isValid( "1.2.3.4.5" ) &&
+           !ipv4.isValid( "01.2.3.4" ) && !ipv4.isValid( "1..3.4" ) && !ipv4.isValid( "" ) &&
+           !ipv4.isValid( "1.2.3.4 " ), "ip: not addresses" );
+    check( ipv4.isValidInput( "" ) && ipv4.isValidInput( "192.168." ) && ipv4.isValidInput( "10" ),
+           "ip: typing the start" );
+    check( !ipv4.isValidInput( "1921" ) && !ipv4.isValidInput( "300" ) && !ipv4.isValidInput( "1..") &&
+           !ipv4.isValidInput( "1.2.3.4." ) && !ipv4.isValidInput( "1a" ), "ip: keys not taken" );
+
+    // networks
+    TNetworkValidator net, strictNet( True );
+    int prefix = -1;
+    check( TNetworkValidator::parse( "10.0.0.0/8", addr, prefix ) && addr == 0x0A000000UL &&
+           prefix == 8, "network: parse" );
+    check( net.isValid( "10.1.2.3/8" ) && !strictNet.isValid( "10.1.2.3/8" ) &&
+           strictNet.isValid( "192.168.1.0/24" ) && strictNet.isValid( "0.0.0.0/0" ),
+           "network: strict wants the host bits 0" );
+    check( !net.isValid( "10.0.0.0" ) && !net.isValid( "10.0.0.0/33" ) && !net.isValid( "10.0.0.0/" ) &&
+           !net.isValid( "10.0.0.0/08" ), "network: not networks" );
+    check( net.isValidInput( "10.0.0.0/" ) && net.isValidInput( "10.0.0.0/2" ) &&
+           !net.isValidInput( "10.0.0.0/40" ) && !net.isValidInput( "10.0.0.0/8/" ), "network: typing" );
+
+    // masks
+    TNetMaskValidator mask;
+    check( TNetMaskValidator::prefix( "255.255.255.0" ) == 24 && TNetMaskValidator::prefix( "/24" ) == 24 &&
+           TNetMaskValidator::prefix( "24" ) == 24 && TNetMaskValidator::prefix( "0.0.0.0" ) == 0 &&
+           TNetMaskValidator::prefix( "255.255.255.255" ) == 32 &&
+           TNetMaskValidator::prefix( "255.255.240.0" ) == 20, "mask: the prefix of each form" );
+    check( !mask.isValid( "255.0.255.0" ) && !mask.isValid( "255.255.255.1" ) && !mask.isValid( "/33" ) &&
+           !mask.isValid( "" ), "mask: the ones must come first" );
+    check( mask.isValidInput( "/2" ) && mask.isValidInput( "255.255." ) && !mask.isValidInput( "/333" ),
+           "mask: typing" );
+
+    // host names
+    THostValidator host, nameOnly( False );
+    check( host.isValid( "db1.internal" ) && host.isValid( "localhost" ) && host.isValid( "10.0.0.5" ) &&
+           host.isValid( "a-b.example.com" ), "host: names and addresses" );
+    check( !host.isValid( "-a.com" ) && !host.isValid( "a-.com" ) && !host.isValid( "a..com" ) &&
+           !host.isValid( "a.com." ) && !host.isValid( "999.1.1.1" ) && !host.isValid( "a_b.com" ) &&
+           !host.isValid( "" ), "host: not names" );
+    check( !nameOnly.isValid( "10.0.0.5" ) && nameOnly.isValid( "web1" ), "host: without addresses" );
+    std::string label63( 63, 'a' ), label64( 64, 'a' );
+    check( host.isValid( label63.c_str() ) && !host.isValid( label64.c_str() ), "host: labels up to 63" );
+    check( host.isValidInput( "db1." ) && !host.isValidInput( "db 1" ), "host: typing" );
+
+    // e-mail
+    TEmailValidator mail;
+    check( mail.isValid( "name@example.com" ) && mail.isValid( "first.last+tag@mail.example.org" ),
+           "email: addresses" );
+    check( !mail.isValid( "name@localhost" ) && !mail.isValid( "@example.com" ) &&
+           !mail.isValid( "name@" ) && !mail.isValid( "a@b@c.com" ) && !mail.isValid( ".a@b.com" ) &&
+           !mail.isValid( "a..b@c.com" ) && !mail.isValid( "a.@b.com" ) && !mail.isValid( "a@-b.com" ),
+           "email: not addresses" );
+    check( mail.isValidInput( "name@" ) && !mail.isValidInput( "na me" ) && !mail.isValidInput( "a@b@" ),
+           "email: typing" );
+
+    // passwords
+    TPasswordValidator pw;
+    check( pw.isValid( "Secret42" ) && !pw.isValid( "secret42" ) && !pw.isValid( "Sec42" ) &&
+           !pw.isValid( "SecretXY" ), "password: length, digit, upper, lower" );
+    check( pw.errorText( "abc" ) ==
+           "The password needs at least 8 characters, a digit and an upper case letter.",
+           "password: the message says what is missing" );
+    TPasswordValidator symbol( 4, pwSymbol );
+    check( symbol.isValid( "ab!c" ) && !symbol.isValid( "abcd" ) &&
+           symbol.errorText( "abcd" ) == "The password needs a symbol such as ! or #.",
+           "password: a symbol" );
+    check( TPasswordValidator::kinds( "aB3 " ) == ( pwLower | pwUpper | pwDigit | pwSymbol ),
+           "password: kinds" );
+
     // typing into the line
     TValidatedInputLine *line = new TValidatedInputLine( TRect( 0, 0, 10, 1 ), 6,
                                                          new TRangeValidator( 1, 999 ) );
@@ -225,6 +300,9 @@ static void testValidators()
     line->setValidator( 0 );
     key( line, 'x' );
     check( strcmp( line->data, "420x" ) == 0, "without a validator anything goes" );
+    line->password = True;
+    line->draw();
+    check( strcmp( line->data, "420x" ) == 0, "a password line keeps the real text" );
     TObject::destroy( line );
 }
 

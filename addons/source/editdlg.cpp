@@ -101,7 +101,7 @@ TDialog *newGotoLineDialog()
     TDialog *d = new TDialog( TRect( 0, 0, 30, 8 ), "Go to line" );
     d->options |= ofCentered;
 
-    TInputLine *control = new TValidatedInputLine( TRect( 15, 2, 24, 3 ), gotoLineLen - 1,
+    TInputLine *control = new TValidatedInputLine( TRect( 15, 2, 24, 3 ), gotoLineLen,
                                                    new TRangeValidator( 1, 65535 ) );
     d->insert( control );
     d->insert( new TLabel( TRect( 2, 2, 14, 3 ), "~L~ine number", control ) );

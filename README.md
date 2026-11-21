@@ -31,7 +31,8 @@ There are no other dependencies; ncurses is not required.
 
 ```sh
 make            # lib/libtv.a, lib/libtvaddons.a, bin/tvdemo, bin/tvedit, bin/tvforms,
-                # bin/tvhc, bin/hello, bin/yamledit, bin/tvguid*, bin/keytest;
+                # bin/tvhc, bin/hello, bin/yamledit, bin/validate, bin/tvguid*,
+                # bin/keytest;
                 # bin/phonenum.tvf and bin/parts.tvf
 make check-help # compiles help/demohelp.txt and compares it with the DOS DEMOHELP.HLP
 make check-addons  # tests of the add-on classes
@@ -111,8 +112,10 @@ library of their own (`lib/libtvaddons.a`, header `tvaddons.h`):
 - `TTableView` and `TTableHeader`: a table with columns, sorting by a click
   on the title and marked rows;
 - `TValidatedInputLine` with `TRangeValidator`, `TFilterValidator`,
-  `TLookupValidator`, `TRegexValidator` and `TFuncValidator`: input lines
-  that check what is typed.
+  `TLookupValidator`, `TRegexValidator`, `TFuncValidator`,
+  `TIPAddressValidator`, `TNetworkValidator`, `TNetMaskValidator`,
+  `THostValidator`, `TEmailValidator` and `TPasswordValidator`: input lines
+  that check what is typed (`bin/validate` shows them all).
 
 ### Environment variables
 

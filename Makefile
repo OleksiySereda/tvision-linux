@@ -56,7 +56,7 @@ ADDOBJ   := $(patsubst %.cpp,obj/%.o,$(ADDSRC))
 LINKADD  := -Wl,--whole-archive $(ADDLIB) $(LIB) -Wl,--no-whole-archive
 
 PROGRAMS := bin/tvdemo bin/tvedit bin/hello bin/keytest \
-            bin/tvforms bin/genphone bin/genparts bin/tvhc bin/yamledit \
+            bin/tvforms bin/genphone bin/genparts bin/tvhc bin/yamledit bin/validate \
             $(patsubst docdemos/%.cpp,bin/%,$(DOCDEMOS))
 
 all: lib $(PROGRAMS) bin/demohelp.hlp bin/phonenum.tvf bin/parts.tvf
@@ -79,6 +79,11 @@ obj/addons/demos/yamledit.o: CPPFLAGS += -Idemos
 bin/yamledit: obj/addons/demos/yamledit.o obj/demos/tvedit2.o obj/demos/tvedit3.o $(ADDLIB) $(LIB)
 	@mkdir -p bin
 	$(CXX) $(LDFLAGS) -o $@ $(filter %.o,$^) $(LINKADD)
+
+# VALIDATE: a dialog with the validators of the add-ons
+bin/validate: obj/addons/demos/validate.o $(ADDLIB) $(LIB)
+	@mkdir -p bin
+	$(CXX) $(LDFLAGS) -o $@ $< $(LINKADD)
 
 bin/yamlsyntax-test: obj/addons/tests/yamlsyntax_test.o $(ADDLIB) $(LIB)
 	@mkdir -p bin

@@ -113,6 +113,7 @@ tv_program( keytest tools/keytest.cpp )
 # YAMLEDIT: TVEDIT with TYamlEditWindow
 tv_addons_program( yamledit addons/demos/yamledit.cpp demos/tvedit2.cpp demos/tvedit3.cpp )
 target_include_directories( yamledit PRIVATE ${PROJECT_SOURCE_DIR}/demos )
+tv_addons_program( validate addons/demos/validate.cpp )
 
 # the examples of the Turbo Vision guide; 06-16 display their own source
 file( GLOB DOCDEMOS CONFIGURE_DEPENDS docdemos/*.cpp )

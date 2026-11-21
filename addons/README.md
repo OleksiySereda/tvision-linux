@@ -32,6 +32,7 @@ tv_addons_program( app app.cpp )
 | `source/` | Their code, built into `lib/libtvaddons.a` |
 | `demos/` | Programs that show them (`bin/...`) |
 | `tests/` | Tests (`make check-addons`; `ctest` on Windows) |
+| `demos/validate.cpp` | `bin/validate`: a form with every validator |
 
 To add a class: put its declaration into a header in `include/` under
 `#if defined( Uses_TName ) && !defined( __TName )`, the dependencies of
@@ -287,9 +288,9 @@ Turbo Vision 1.0 has no validators (they came with 2.0). A
 #define Uses_TValidatedInputLine
 #include <tvaddons.h>
 
-d->insert( new TValidatedInputLine( TRect( 3, 2, 12, 3 ), 5,
+d->insert( new TValidatedInputLine( TRect( 3, 2, 12, 3 ), 6,   // 5 characters and the 0
                new TRangeValidator( 1, 65535 ) ) );
-d->insert( new TValidatedInputLine( TRect( 3, 4, 20, 5 ), 15,
+d->insert( new TValidatedInputLine( TRect( 3, 4, 20, 5 ), 16,
                new TRegexValidator( "(\\d{1,3}\\.){3}\\d{1,3}", "Not an IPv4 address." ) ) );
 ```
 
@@ -306,6 +307,28 @@ d->insert( new TValidatedInputLine( TRect( 3, 4, 20, 5 ), 15,
 | `TLookupValidator( "yes\|no", '\|', caseSensitive )` | one of a list |
 | `TRegexValidator( expression, message, caseSensitive )` | the whole text matches (`std::regex`, ECMAScript) |
 | `TFuncValidator( check, message, data )` | what `check( text, data )` says |
+| `TIPAddressValidator` | an IPv4 address, `192.168.0.1`: 4 numbers 0–255 without leading zeros; `parse()` gives it as a number |
+| `TNetworkValidator( strict )` | address/prefix, `10.0.0.0/8`; with `strict` the bits after the prefix must be 0 |
+| `TNetMaskValidator` | a mask: `255.255.255.0`, `/24` or `24`; the ones must come first; `prefix()` gives the length |
+| `THostValidator( allowAddress )` | a host name (RFC 1123: labels of letters, digits and `-`, up to 63, 253 in all) or, by default, an IPv4 address |
+| `TEmailValidator` | `name@example.com`: a practical check (one `@`, the characters allowed before it, a host name with a dot after it), not all of RFC 5322 |
+| `TPasswordValidator( minLength, require )` | at least `minLength` (8) characters with the kinds in `require`: `pwDigit`, `pwUpper`, `pwLower` (the default), `pwSymbol`; the message says what is missing |
+
+While typing, the network validators take only what can still become
+valid: no fifth number, no `256`, no second `/`.
+
+A line with `password = True` shows `*` for each character; its data are the
+real text:
+
+```cpp
+TValidatedInputLine *pw = new TValidatedInputLine( TRect( 15, 6, 46, 7 ), 31,
+                                                   new TPasswordValidator );
+pw->password = True;
+```
+
+The second argument is the size of the data with the 0, as for `TInputLine`:
+31 for 30 characters. `bin/validate` (`addons/demos/validate.cpp`) is a form
+with a line for each of them.
 
 `allowEmpty = True` lets an empty text through whatever the validator says.
 A validator of its own derives from `TValidator` and overrides
