@@ -91,6 +91,9 @@ public:
 
     // marks
     Boolean markable;
+    // what the first column shows for a marked and an unmarked row: a
+    // check mark and a blank by default, "[x] " and "[ ] " say
+    void setMarkText( const char *on, const char *off );
     void setMark( int row, Boolean on );
     Boolean isMarked( int row ) const;
     int markedCount() const;
@@ -125,7 +128,8 @@ private:
 
     std::string pad( const std::string& s, int width, int align ) const;
     int markWidth() const
-        { return markable == True ? 2 : 0; }
+        { return markable == True ? int( markOn.size() ) : 0; }
+    std::string markOn, markOff;
     void changed();                     // range, scroll bar, redraw
 
 };

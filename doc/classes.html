@@ -658,6 +658,7 @@ t-&gt;addColumn( "Server", 12 );
 t-&gt;addColumn( "Port", 6, TTableView::alRight );
 t-&gt;addRow( { "web1", "22" } );
 t-&gt;markable = True;
+t-&gt;setMarkText( "[x] ", "[ ] " );   // instead of a check mark
 t-&gt;sortBy( 1 );                 // by port</code></pre></div>
 <div class="cls" id="TTableHeader" data-cls="ttableheader"><h3>TTableHeader</h3><div class="meta"><span>header <b>tableview.h</b></span><span>base <b>TView</b></span><span><b>Uses_TTableHeader</b></span></div><p>The titles over a <code>TTableView</code>, with an arrow on the sort column; a click on a title sorts by it, a second click the other way round.</p><pre><code>insert( t );
 insert( new TTableHeader( TRect( 2, 2, 60, 3 ), t ) );</code></pre></div>

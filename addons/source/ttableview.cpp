@@ -23,7 +23,6 @@
 #include <string.h>
 #include <algorithm>
 
-static const char markChar = '\xFB';            // CP437 check mark
 static const char dividerChar = '\xB3';         // CP437 vertical line
 static const char upArrow = '\x1E', downArrow = '\x1F';
 
@@ -33,9 +32,21 @@ TTableView::TTableView( const TRect& bounds, TScrollBar *aHScrollBar,
     sortColumn( -1 ),
     sortAscending( True ),
     markable( False ),
+    markOn( "\xFB " ),                              // CP437 check mark
+    markOff( "  " ),
     header( 0 )
 {
     eventMask |= evMouseWheel;
+}
+
+void TTableView::setMarkText( const char *on, const char *off )
+{
+    markOn = on != 0 ? on : "";
+    markOff = off != 0 ? off : "";
+    if( markOff.size() < markOn.size() )
+        markOff.append( markOn.size() - markOff.size(), ' ' );
+    markOff.resize( markOn.size() );
+    changed();
 }
 
 void TTableView::shutDown()
@@ -330,8 +341,7 @@ std::string TTableView::formatRow( int item ) const
     std::string s;
     if( markable == True )
         {
-        s += marks[row] ? markChar : ' ';
-        s += ' ';
+        s += marks[row] ? markOn : markOff;
         }
     for( int c = 0; c < columnCount(); c++ )
         {

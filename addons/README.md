@@ -256,6 +256,7 @@ table->addColumn( "Port", 6, TTableView::alRight );
 table->addColumn( "Description", 30 );
 table->addRow( { "web1", "22", "Frontend" } );
 table->markable = True;                 // Space / Ins mark rows
+table->setMarkText( "[x] ", "[ ] " );   // instead of a check mark
 insert( table );
 insert( new TTableHeader( TRect( 2, 2, 60, 3 ), table ) );
 ```

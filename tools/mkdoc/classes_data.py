@@ -816,6 +816,7 @@ t->addColumn( "Server", 12 );
 t->addColumn( "Port", 6, TTableView::alRight );
 t->addRow( { "web1", "22" } );
 t->markable = True;
+t->setMarkText( "[x] ", "[ ] " );   // instead of a check mark
 t->sortBy( 1 );                 // by port'''),
 
 ("TTableHeader", "tableview.h", ["TView"], "Uses_TTableHeader",
