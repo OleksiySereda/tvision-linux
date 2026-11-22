@@ -272,6 +272,10 @@ insert( new TTableHeader( TRect( 2, 2, 60, 3 ), table ) );
   focused row, as does a click in the first column; marked rows show a
   check mark in the "selected" colour. `setMark()`, `isMarked()`,
   `markedCount()`, `markAll()`.
+- `setFilter( "web" )` shows only the rows with that text in a cell
+  (without regard to case; `rowMatches()` is virtual), `setFilter( "" )`
+  all of them. Hidden rows keep their cells and marks; `rowShown()` tells
+  whether a row is on the list. A new row is shown only if it matches.
 - Enter and a double click broadcast `cmListItemSelected` as `TListViewer`
   does; `focusedRow()` is the row.
 - Rows are numbered in the order they were added (`row`); their place on

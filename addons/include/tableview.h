@@ -22,7 +22,10 @@
 /*     a click in the first column too; the marked rows show a check       */
 /*     mark and the "selected" colour;                                     */
 /*   - Enter and a double click broadcast cmListItemSelected, as           */
-/*     TListViewer does; Enter goes on to the default button too.          */
+/*     TListViewer does; Enter goes on to the default button too;          */
+/*   - setFilter( "web" ) shows only the rows with "web" in a cell         */
+/*     (without regard to case; rowMatches() may be overridden), "" all   */
+/*     of them; the hidden rows keep their cells and marks.                */
 /*                                                                         */
 /*   Rows are counted in the order they were added (row); the place on     */
 /*   the screen, after sorting, is an item (TListViewer's focused,         */
@@ -89,6 +92,16 @@ public:
     // < 0, 0, > 0 like strcmp
     virtual int compare( int rowA, int rowB, int col ) const;
 
+    // filtering: only the rows that match text are shown (and counted in
+    // range); "" shows all.  After setCell() resort() applies it again.
+    void setFilter( const char *text );
+    const std::string& filterText() const
+        { return filter; }
+    // True if a cell of row has text in it, without regard to case
+    virtual Boolean rowMatches( int row, const std::string& text ) const;
+    Boolean rowShown( int row ) const
+        { return Boolean( itemOf( row ) >= 0 ); }
+
     // marks
     Boolean markable;
     // what the first column shows for a marked and an unmarked row: a
@@ -125,6 +138,7 @@ private:
     std::vector< std::vector<std::string> > rows;
     std::vector<int> order;             // item -> row
     std::vector<bool> marks;            // by row
+    std::string filter;                 // setFilter()
 
     std::string pad( const std::string& s, int width, int align ) const;
     int markWidth() const

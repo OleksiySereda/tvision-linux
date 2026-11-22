@@ -159,6 +159,19 @@ static void testTable()
     t->sortBy( 0 );
     check( t->isMarked( mail ), "the marks stay with their rows" );
 
+    t->setFilter( "WE" );
+    check( t->range == 1 && t->rowAt( 0 ) == web && t->rowShown( web ) && !t->rowShown( db ),
+           "the filter shows the rows with the text in a cell, without case" );
+    check( t->isMarked( mail ) && t->markedCount() == 4, "hidden rows keep their marks" );
+    int www = t->addRow( { "www", "80" } );
+    int gw = t->addRow( { "Wedge", "1" } );
+    check( !t->rowShown( www ) && t->rowShown( gw ) && t->range == 2,
+           "a new row is shown only if it matches" );
+    t->setFilter( "" );
+    check( t->range == 6 && t->rowShown( db ), "an empty filter shows them all" );
+    t->removeRow( gw );
+    t->removeRow( www );
+
     t->removeRow( db );
     check( t->rowCount() == 3 && strcmp( t->cell( 2, 0 ), "ftp" ) == 0 && t->itemOf( 3 ) == -1,
            "removeRow renumbers the rows after it" );

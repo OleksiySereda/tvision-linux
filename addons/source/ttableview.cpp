@@ -116,6 +116,8 @@ int TTableView::addRow( const std::vector<std::string>& cells )
     rows.push_back( cells );
     rows.back().resize( std::max( cells.size(), columns.size() ) );
     marks.push_back( false );
+    if( !filter.empty() && rowMatches( row, filter ) == False )
+        return row;                     // hidden by the filter
 
     // a sorted table stays sorted: the new row goes after its equals
     std::vector<int>::iterator at = order.end();
@@ -156,7 +158,9 @@ void TTableView::removeRow( int row )
         return;
     rows.erase( rows.begin() + row );
     marks.erase( marks.begin() + row );
-    order.erase( std::find( order.begin(), order.end(), row ) );
+    std::vector<int>::iterator at = std::find( order.begin(), order.end(), row );
+    if( at != order.end() )
+        order.erase( at );
     for( int& r : order )
         if( r > row )
             r--;
@@ -266,8 +270,10 @@ void TTableView::sortBy( int col, Boolean ascending )
 void TTableView::resort()
 {
     int keep = focusedRow();
-    for( size_t i = 0; i < order.size(); i++ )
-        order[i] = int( i );
+    order.clear();
+    for( int i = 0; i < rowCount(); i++ )
+        if( filter.empty() || rowMatches( i, filter ) == True )
+            order.push_back( i );
     // equal rows keep the order they were added in
     if( sortColumn >= 0 )
         std::stable_sort( order.begin(), order.end(),
@@ -276,11 +282,38 @@ void TTableView::resort()
                 int r = compare( a, b, sortColumn );
                 return sortAscending == True ? r < 0 : r > 0;
                 } );
-    if( keep >= 0 )
+    if( keep >= 0 && itemOf( keep ) >= 0 )
         focused = short( itemOf( keep ) );
     changed();
     if( header != 0 )
         header->drawView();
+}
+
+// ---- filtering
+
+void TTableView::setFilter( const char *text )
+{
+    std::string t = text != 0 ? text : "";
+    if( t == filter )
+        return;
+    filter = t;
+    resort();
+}
+
+Boolean TTableView::rowMatches( int row, const std::string& text ) const
+{
+    std::string t;
+    for( char c : text )
+        t += char( tolower( uchar( c ) ) );
+    for( int c = 0; c < int( rows[row].size() ); c++ )
+        {
+        std::string s;
+        for( char ch : rows[row][c] )
+            s += char( tolower( uchar( ch ) ) );
+        if( s.find( t ) != std::string::npos )
+            return True;
+        }
+    return False;
 }
 
 // ---- marks

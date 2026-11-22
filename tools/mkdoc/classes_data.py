@@ -808,7 +808,8 @@ log->addf( "STOP after %d steps", steps );'''),
  "A list of rows with columns of text (<code>addColumn()</code>, "
  "<code>addRow()</code>, <code>setCell()</code>), sorted by any column "
  "(<code>sortBy()</code>; numbers as numbers), with marks on rows when "
- "<code>markable</code> (Space, Ins, a click in the first column). "
+ "<code>markable</code> (Space, Ins, a click in the first column) and a "
+ "filter (<code>setFilter()</code>: only the rows with the text in a cell). "
  "<code>rowAt()</code> and <code>itemOf()</code> convert between the rows and "
  "their places on the screen.",
 r'''TTableView *t = new TTableView( TRect( 2, 3, 60, 15 ), 0, vScroll );
@@ -817,7 +818,8 @@ t->addColumn( "Port", 6, TTableView::alRight );
 t->addRow( { "web1", "22" } );
 t->markable = True;
 t->setMarkText( "[x] ", "[ ] " );   // instead of a check mark
-t->sortBy( 1 );                 // by port'''),
+t->sortBy( 1 );                 // by port
+t->setFilter( "web" );          // only the rows with "web" in a cell'''),
 
 ("TTableHeader", "tableview.h", ["TView"], "Uses_TTableHeader",
  "The titles over a <code>TTableView</code>, with an arrow on the sort "
