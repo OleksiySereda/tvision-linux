@@ -530,10 +530,27 @@ the output, a status line, Stop and Close:
 int code = TProcessDialog::run( "Build", "make -j4", "/home/me/shop" );
 ```
 
-- `start( command, dir, env )`: a working directory and variables
-  (`"NAME=value"`) for the command only.
-- `read()` (raw bytes), `running()`, `exitCode()` (128 + the signal when it
-  was killed, 143 after `stop()`).
+- `start( command, options )` through the shell, `startArgv( argv, options )`
+  without one (argv[0] searched in PATH); `TProcessOptions`:
+  - `dir`, `env` (name, value pairs) for the command only;
+  - `input`: written to stdin, which then closes; with `keepInput` it stays
+    open for `send()` until `closeInput()`;
+  - `captureStdout`: stdout comes apart in `readCaptured()` (a value the
+    command prints), stderr in `read()`;
+  - `newSession` (Linux): `setsid()`, no terminal, so ssh asks through
+    `SSH_ASKPASS`; else a process group of its own.
+- `read()` (raw bytes), `poll( out )` / `poll( out, captured )`,
+  `running()` (after the command has ended, what it started in the
+  background may keep the pipes open, for `drainMs` at most), `exited()`,
+  `exitCode()` (128 + the signal when it was killed, 143 after `stop()`).
+- `stop()`: SIGTERM to the process group and SIGKILL `killMs` (3 s) later
+  if it is still there; on Windows the job ends at once.
+- `TProcess::runAttached( command, options )` runs a command on the
+  terminal itself (Turbo Vision suspended) and waits; Ctrl+C goes to it.
+- `start( command, dir, env )` with `"NAME=value"` strings is kept too.
+
+deployer (ssh connections, local steps) and installator (the steps of an
+installation, `set:` values) run their commands with it.
 - The view shows `$ command`, then the output (UTF-8; on Windows the OEM
   code page unless it already is UTF-8, in the code page of the screen,
   colour escapes taken out; `\r` alone starts the line over), then
@@ -583,7 +600,8 @@ deskTop->insert( validView( new TMarkdownWindow( deskTop->getExtent(), "README.m
 - `setText()`, `loadFile()`, `gotoAnchor()`; `styleColor()` gives the
   colour of each style and can be overridden.
 - The text is UTF-8 and is shown in the code page of the screen
-  (`toScreenText()` in `textconv.h`).
+  (`toScreenText()` in `textconv.h`; `fromScreenText()` goes back, for the
+  text of an input line).
 
 ## TDateInput, TDateButton
 
@@ -628,6 +646,12 @@ s->restore( settings, "main" );                 // TAppSettings, [splitter.main]
 
 `minFirst` and `minSecond` (3) keep both parts from vanishing;
 `setPosition()` moves it from the program; `save()` keeps the position.
+A horizontal bar may have a `title` (at `titleX`); `doubleLine` draws it as
+a frame does, `normalColor` and `dragColor` are the indexes of its colours
+in the owner's palette. `replace( old, new )` keeps a view that is made
+again (an editor opened again) moving with the bar. After each move it
+broadcasts `cmSplitterMoved`. The four parts of the vnm window are laid
+out with two of them.
 
 ## Themes
 

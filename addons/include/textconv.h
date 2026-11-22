@@ -8,7 +8,8 @@
 /*   default, 866 or 1125 with $TVCODEPAGE).  toScreenText() turns UTF-8   */
 /*   into it: a character the code page has becomes its byte, dashes and   */
 /*   quotes become - and ", anything else '?'.  Invalid UTF-8 bytes are    */
-/*   taken as they are.                                                    */
+/*   taken as they are.  fromScreenText() goes back: the text of an input  */
+/*   line, say, as UTF-8.                                                  */
 /*                                                                         */
 /*   Include through tvaddons.h with Uses_TextConv.                        */
 /*                                                                         */
@@ -20,6 +21,7 @@
 #include <string>
 
 std::string toScreenText( const std::string& utf8 );
+std::string fromScreenText( const std::string& screen );
 // the same for one character; -1 if it is not shown at all (U+FEFF)
 int screenChar( unsigned long codePoint );
 // ESC [ ... sequences (colours of terminal programs) taken out

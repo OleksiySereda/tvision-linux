@@ -5,9 +5,17 @@
 /*   defines the classes TProcess, TProcessView and TProcessDialog         */
 /*                                                                         */
 /*   TProcess runs a command through the shell (/bin/sh -c on Linux,       */
-/*   cmd.exe /c on Windows) with its output (stdout and stderr together)   */
-/*   in a pipe that is read without waiting; stdin is empty.  stop()       */
-/*   ends it with everything it started.                                   */
+/*   cmd.exe /d /s /c on Windows), or a program and its arguments without  */
+/*   a shell (startArgv), in the background: the output comes through     */
+/*   pipes read without waiting, so the user interface keeps running.     */
+/*   TProcessOptions say where it runs, what is added to its environment,  */
+/*   what goes to its stdin (and whether stdin stays open for send()),     */
+/*   whether stdout is kept apart (readCaptured(), for a value the command */
+/*   prints) and, on Linux, whether it gets a session of its own without   */
+/*   a terminal (ssh then asks through SSH_ASKPASS).  stop() ends it with  */
+/*   everything it started: SIGTERM to its process group and SIGKILL if    */
+/*   it is still there after killMs; on Windows the job object ends.       */
+/*   runAttached() runs a command on the terminal itself and waits.        */
 /*                                                                         */
 /*   TProcessView is a TLogView that shows the output of a TProcess as     */
 /*   it comes; poll() reads it, and is called from the program's idle()    */
@@ -30,7 +38,24 @@
 #define __TProcess
 
 #include <string>
+#include <utility>
 #include <vector>
+
+// variables for a command: name, value
+typedef std::vector< std::pair<std::string, std::string> > TProcessEnv;
+
+struct TProcessOptions
+{
+    std::string dir;                    // where it runs; "" = here
+    TProcessEnv env;                    // added to the environment
+    std::string input;                  // written to stdin, which then closes
+    bool keepInput;                     // stdin stays open for send()
+    bool captureStdout;                 // stdout to readCaptured(), stderr to read()
+    bool newSession;                    // Linux: setsid() (no terminal); else
+                                        // a process group of its own
+
+    TProcessOptions() : keepInput( false ), captureStdout( false ), newSession( false ) {}
+};
 
 class TProcess
 {
@@ -38,18 +63,37 @@ class TProcess
 public:
 
     TProcess();
-    ~TProcess();                        // stops it if it runs
+    ~TProcess();                        // kills it if it still runs
 
-    // the command line goes to the shell as it is; dir: where it runs
-    // ("" = here); env: "NAME=value" added to the environment.  False if
-    // it could not be started (error() says why).
-    bool start( const std::string& command, const std::string& dir = "",
+    // the command line goes to the shell as it is.  False if it could not
+    // be started (error() says why).
+    bool start( const std::string& command, const TProcessOptions& options = TProcessOptions() );
+    // the same with a directory and "NAME=value" variables
+    bool start( const std::string& command, const std::string& dir,
                 const std::vector<std::string>& env = std::vector<std::string>() );
+    // argv[0] searched in PATH, no shell
+    bool startArgv( const std::vector<std::string>& argv,
+                    const TProcessOptions& options = TProcessOptions() );
 
-    // what came out since the last call, without waiting (raw bytes)
+    // what came out since the last call, without waiting (raw bytes):
+    // stdout and stderr, or stderr alone with captureStdout
     std::string read();
-    // True while it runs or output is still in the pipe
+    // stdout with captureStdout
+    std::string readCaptured();
+    // appends read() (and readCaptured()); returns running()
+    bool poll( std::string& out );
+    bool poll( std::string& out, std::string& captured );
+
+    // more for stdin (keepInput); False once it is closed
+    bool send( const std::string& data );
+    void closeInput();
+
+    // True while it runs or output may still come: after it has ended,
+    // what it started in the background may keep the pipes open, for
+    // drainMs at most
     bool running();
+    // it has ended (its output may still be in the pipes)
+    bool exited();
     // the exit code once it has ended: 128 + signal if it was killed
     // (143 after stop()), -1 while it runs
     int exitCode() const
@@ -59,27 +103,43 @@ public:
     const std::string& error() const
         { return failure; }
 
-    // asks it to end (SIGTERM to its process group; on Windows the job
-    // ends); a second stop() kills it
+    // SIGTERM to its process group, SIGKILL killMs later if it is still
+    // there (or at a second stop()); on Windows the job ends at once
     void stop();
+    void terminate()
+        { stop(); }
+
+    // runs command on the terminal and waits for it (Turbo Vision has to
+    // be suspended); Ctrl+C goes to the command.  The exit code, 127 if it
+    // could not be started.
+    static int runAttached( const std::string& command,
+                            const TProcessOptions& options = TProcessOptions() );
 
     // output as UTF-8: on Linux as it is; on Windows the OEM code page
     // of cmd.exe is converted unless it already is UTF-8
     static std::string toUtf8( const std::string& raw );
 
+    // a clock in milliseconds that only goes forward
+    static long clockMs();
+
+    static const long drainMs = 2000;
+    static const long killMs = 3000;
+
 private:
 
-    bool finished();
+    bool launch( const std::vector<std::string>& argv, bool shell, const TProcessOptions& o );
+    void check();
 
     std::string failure;
     int code;
-    bool started, stopRequested, eof;
+    bool started, stopRequested, done;
     int stops;
+    long exitTime, termTime;
 
 #if defined( _WIN32 )
-    void *process, *job, *pipe;
+    void *process, *job, *outPipe, *capPipe, *inPipe;
 #else
-    int pid, fd;
+    int pid, outFd, capFd, inFd;
 #endif
 
     TProcess( const TProcess& );

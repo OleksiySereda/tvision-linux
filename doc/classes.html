@@ -708,10 +708,14 @@ TPage *p = w-&gt;addPage( "Where to" );
 p-&gt;insert( new TInputLine( TRect( 15, 1, 50, 2 ), 61 ) );
 w-&gt;addPage( "Options" );
 deskTop-&gt;execView( w );</code></pre></div>
-<div class="cls" id="TProcess" data-cls="tprocess"><h3>TProcess</h3><div class="meta"><span>header <b>tvproc.h</b></span><span><b>Uses_TProcess</b></span></div><p>A command run through the shell (<code>/bin/sh -c</code>, <code>cmd.exe /c</code>) with its output in a pipe read without waiting: <code>start( command, dir, env )</code>, <code>read()</code>, <code>running()</code>, <code>exitCode()</code>, <code>stop()</code> (the process group, a job object on Windows).</p><pre><code>TProcess p;
-p.start( "make -j4", "/home/me/shop" );
-while( p.running() )
-    out += p.read();</code></pre></div>
+<div class="cls" id="TProcess" data-cls="tprocess"><h3>TProcess</h3><div class="meta"><span>header <b>tvproc.h</b></span><span><b>Uses_TProcess</b></span></div><p>A command run through the shell (<code>/bin/sh -c</code>, <code>cmd.exe /c</code>) or a program without one (<code>startArgv()</code>), with its output in pipes read without waiting. <code>TProcessOptions</code>: directory, variables, stdin (kept open for <code>send()</code> with <code>keepInput</code>), stdout apart (<code>captureStdout</code>, <code>readCaptured()</code>), a session of its own. <code>stop()</code>: SIGTERM, SIGKILL 3 s later (a job object on Windows); <code>runAttached()</code> runs a command on the terminal.</p><pre><code>TProcess p;
+TProcessOptions o;
+o.dir = "/home/me/shop";
+o.env = { { "MODE", "release" } };
+p.start( "make -j4", o );
+std::string out;
+while( p.poll( out ) )
+    ;</code></pre></div>
 <div class="cls" id="TProcessView" data-cls="tprocessview"><h3>TProcessView</h3><div class="meta"><span>header <b>tvproc.h</b></span><span>base <b>TLogView</b></span><span><b>Uses_TProcessView</b></span></div><p>A <code>TLogView</code> with the output of a command as it comes, in the code page of the screen, and its exit code; <code>poll()</code> reads it (from <code>idle()</code>).</p><pre><code>view-&gt;start( "ping -c 3 127.0.0.1" );
 ...
 void TMyApp::idle() { TApplication::idle(); view-&gt;poll(); }</code></pre></div>
@@ -727,7 +731,7 @@ v-&gt;gotoAnchor( "#building" );</code></pre></div>
 dlg-&gt;insert( d );
 dlg-&gt;insert( new TDateButton( TRect( 28, 7, 31, 8 ), d ) );</code></pre></div>
 <div class="cls" id="TDateButton" data-cls="tdatebutton"><h3>TDateButton</h3><div class="meta"><span>header <b>dateedit.h</b></span><span>base <b>TView</b></span><span><b>Uses_TDateInput</b></span></div><p>The arrow right of a <code>TDateInput</code>: a click opens the calendar.</p><pre><code>dlg-&gt;insert( new TDateButton( TRect( 28, 7, 31, 8 ), d ) );</code></pre></div>
-<div class="cls" id="TSplitter" data-cls="tsplitter"><h3>TSplitter</h3><div class="meta"><span>header <b>splitter.h</b></span><span>base <b>TView</b></span><span><b>Uses_TSplitter</b></span></div><p>A bar between two parts of a window that the mouse drags; the views of each side are resized or moved with it, within <code>minFirst</code> / <code>minSecond</code>; <code>save()</code> and <code>restore()</code> keep it in <code>TAppSettings</code>.</p><pre><code>TSplitter *s = new TSplitter( TRect( 30, 1, 31, h - 1 ), True );
+<div class="cls" id="TSplitter" data-cls="tsplitter"><h3>TSplitter</h3><div class="meta"><span>header <b>splitter.h</b></span><span>base <b>TView</b></span><span><b>Uses_TSplitter</b></span></div><p>A bar between two parts of a window that the mouse drags; the views of each side are resized or moved with it, within <code>minFirst</code> / <code>minSecond</code>; <code>save()</code> and <code>restore()</code> keep it in <code>TAppSettings</code>; a title and a frame's double line; <code>replace()</code>; <code>cmSplitterMoved</code>.</p><pre><code>TSplitter *s = new TSplitter( TRect( 30, 1, 31, h - 1 ), True );
 s-&gt;addFirst( tree );
 s-&gt;addSecond( text );
 insert( s );</code></pre></div>

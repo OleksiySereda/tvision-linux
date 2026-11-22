@@ -939,14 +939,21 @@ w->addPage( "Options" );
 deskTop->execView( w );"""),
 
 ("TProcess", "tvproc.h", [], "Uses_TProcess",
- "A command run through the shell (<code>/bin/sh -c</code>, <code>cmd.exe /c</code>) with "
- "its output in a pipe read without waiting: <code>start( command, dir, env )</code>, "
- "<code>read()</code>, <code>running()</code>, <code>exitCode()</code>, <code>stop()</code> "
- "(the process group, a job object on Windows).",
+ "A command run through the shell (<code>/bin/sh -c</code>, <code>cmd.exe /c</code>) or a "
+ "program without one (<code>startArgv()</code>), with its output in pipes read without "
+ "waiting. <code>TProcessOptions</code>: directory, variables, stdin (kept open for "
+ "<code>send()</code> with <code>keepInput</code>), stdout apart "
+ "(<code>captureStdout</code>, <code>readCaptured()</code>), a session of its own. "
+ "<code>stop()</code>: SIGTERM, SIGKILL 3 s later (a job object on Windows); "
+ "<code>runAttached()</code> runs a command on the terminal.",
 r"""TProcess p;
-p.start( "make -j4", "/home/me/shop" );
-while( p.running() )
-    out += p.read();"""),
+TProcessOptions o;
+o.dir = "/home/me/shop";
+o.env = { { "MODE", "release" } };
+p.start( "make -j4", o );
+std::string out;
+while( p.poll( out ) )
+    ;"""),
 
 ("TProcessView", "tvproc.h", ["TLogView"], "Uses_TProcessView",
  "A <code>TLogView</code> with the output of a command as it comes, in the code page of "
@@ -995,7 +1002,8 @@ r"""dlg->insert( new TDateButton( TRect( 28, 7, 31, 8 ), d ) );"""),
 ("TSplitter", "splitter.h", ["TView"], "Uses_TSplitter",
  "A bar between two parts of a window that the mouse drags; the views of each side are "
  "resized or moved with it, within <code>minFirst</code> / <code>minSecond</code>; "
- "<code>save()</code> and <code>restore()</code> keep it in <code>TAppSettings</code>.",
+ "<code>save()</code> and <code>restore()</code> keep it in <code>TAppSettings</code>; "
+ "a title and a frame's double line; <code>replace()</code>; <code>cmSplitterMoved</code>.",
 r"""TSplitter *s = new TSplitter( TRect( 30, 1, 31, h - 1 ), True );
 s->addFirst( tree );
 s->addSecond( text );

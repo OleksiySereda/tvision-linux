@@ -81,6 +81,37 @@ std::string toScreenText( const std::string& s )
     return out;
 }
 
+std::string fromScreenText( const std::string& s )
+{
+    std::string out;
+    out.reserve( s.size() );
+    for( unsigned char c : s )
+        {
+        uint32_t u = c < 0x80 ? c : tvplatform::toUnicode( c );
+        if( u < 0x80 )
+            out += char( u );
+        else if( u < 0x800 )
+            {
+            out += char( 0xC0 | ( u >> 6 ) );
+            out += char( 0x80 | ( u & 0x3F ) );
+            }
+        else if( u < 0x10000 )
+            {
+            out += char( 0xE0 | ( u >> 12 ) );
+            out += char( 0x80 | ( ( u >> 6 ) & 0x3F ) );
+            out += char( 0x80 | ( u & 0x3F ) );
+            }
+        else
+            {
+            out += char( 0xF0 | ( u >> 18 ) );
+            out += char( 0x80 | ( ( u >> 12 ) & 0x3F ) );
+            out += char( 0x80 | ( ( u >> 6 ) & 0x3F ) );
+            out += char( 0x80 | ( u & 0x3F ) );
+            }
+        }
+    return out;
+}
+
 std::string stripAnsi( const std::string& s )
 {
     std::string out;

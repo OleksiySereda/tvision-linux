@@ -21,6 +21,10 @@ TSplitter::TSplitter( const TRect& bounds, Boolean aVertical ) :
     vertical( aVertical ),
     minFirst( 3 ),
     minSecond( 3 ),
+    titleX( 1 ),
+    doubleLine( False ),
+    normalColor( 1 ),
+    dragColor( 2 ),
     dragging( False )
 {
     growMode = vertical == True ? gfGrowHiY : gfGrowHiX;
@@ -42,6 +46,22 @@ void TSplitter::addSecond( TView *view, int mode )
 {
     if( view != 0 )
         parts.push_back( Part{ view, mode, False } );
+}
+
+void TSplitter::replace( TView *oldView, TView *newView )
+{
+    for( Part& p : parts )
+        if( p.view == oldView )
+            p.view = newView;
+}
+
+void TSplitter::remove( TView *view )
+{
+    for( size_t i = 0; i < parts.size(); )
+        if( parts[i].view == view )
+            parts.erase( parts.begin() + long( i ) );
+        else
+            i++;
 }
 
 void TSplitter::setPosition( int pos )
@@ -80,6 +100,7 @@ void TSplitter::setPosition( int pos )
     TRect me = getBounds();
     me.move( vertical == True ? d : 0, vertical == True ? 0 : d );
     locate( me );
+    message( owner, evBroadcast, cmSplitterMoved, this );
 }
 
 void TSplitter::save( TAppSettings& settings, const char *name )
@@ -96,17 +117,20 @@ void TSplitter::restore( TAppSettings& settings, const char *name )
 
 void TSplitter::draw()
 {
-    // the frame's colours: passive, active while it is dragged
-    ushort color = getColor( dragging == True ? 2 : 1 );
+    // by default the frame's colours: passive, active while it is dragged
+    ushort color = getColor( dragging == True ? dragColor : normalColor );
+    Boolean thick = Boolean( doubleLine == True || dragging == True );
     TDrawBuffer b;
     if( vertical == True )
         {
-        b.moveChar( 0, dragging == True ? '\xBA' : '\xB3', color, size.x );
+        b.moveChar( 0, thick == True ? '\xBA' : '\xB3', color, size.x );
         writeLine( 0, 0, size.x, size.y, b );
         }
     else
         {
-        b.moveChar( 0, dragging == True ? '\xCD' : '\xC4', color, size.x );
+        b.moveChar( 0, thick == True ? '\xCD' : '\xC4', color, size.x );
+        if( !title.empty() && titleX < size.x )
+            b.moveStr( ushort( titleX ), title.substr( 0, size_t( size.x - titleX ) ).c_str(), color );
         writeLine( 0, 0, size.x, size.y, b );
         }
 }

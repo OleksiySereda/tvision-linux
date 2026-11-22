@@ -189,6 +189,78 @@ static void testProcess()
     check( runToEnd( p ).find( "forty-two" ) != std::string::npos, "process: the environment" );
     }
 
+    // without a shell, stdin, stdout apart
+    {
+    TProcess p;
+#if defined( _WIN32 )
+    std::vector<std::string> argv{ "cmd.exe", "/c", "echo one two" };
+#else
+    std::vector<std::string> argv{ "printf", "%s|", "one two", "three" };
+#endif
+    check( p.startArgv( argv ), "process: startArgv" );
+    std::string out = runToEnd( p );
+#if defined( _WIN32 )
+    check( out.find( "one two" ) != std::string::npos && p.exitCode() == 0, "process: argv, cmd /c" );
+#else
+    check( out == "one two|three|" && p.exitCode() == 0, "process: argv kept apart, no shell" );
+#endif
+    }
+    {
+    TProcess p;
+    TProcessOptions o;
+    o.input = "hello\n";
+    o.keepInput = true;
+#if defined( _WIN32 )
+    check( p.start( "findstr x*", o ), "process: start with stdin" );
+#else
+    check( p.start( "cat", o ), "process: start with stdin" );
+#endif
+    check( p.send( "more\n" ), "process: send" );
+    p.closeInput();
+    std::string out = runToEnd( p );
+    check( out.find( "hello" ) != std::string::npos && out.find( "more" ) != std::string::npos,
+           "process: what was sent comes back" );
+    }
+    {
+    TProcess p;
+    TProcessOptions o;
+    o.captureStdout = true;
+#if defined( _WIN32 )
+    p.start( "echo value& echo note 1>&2", o );
+#else
+    p.start( "echo value; echo note >&2", o );
+#endif
+    std::string shown, captured;
+    auto t0 = std::chrono::steady_clock::now();
+    while( p.poll( shown, captured ) &&
+           std::chrono::steady_clock::now() - t0 < std::chrono::seconds( 5 ) )
+        std::this_thread::sleep_for( std::chrono::milliseconds( 5 ) );
+    check( captured.find( "value" ) != std::string::npos && captured.find( "note" ) == std::string::npos &&
+           shown.find( "note" ) != std::string::npos, "process: captureStdout keeps stdout apart" );
+    }
+#if !defined( _WIN32 )
+    {
+    TProcess p;
+    TProcessOptions o;
+    o.newSession = true;
+    p.start( "ps -o sid= -p $$; ps -o pid= -p $$", o );
+    std::string out = runToEnd( p );
+    int sid = 0, pid = -1;
+    sscanf( out.c_str(), "%d %d", &sid, &pid );
+    check( sid == pid && sid > 0, "process: newSession makes it lead a session" );
+    }
+    {
+    // a command that does not end on SIGTERM is killed later
+    TProcess p;
+    p.start( "trap '' TERM; while :; do sleep 0.1; done" );
+    std::this_thread::sleep_for( std::chrono::milliseconds( 200 ) );
+    p.stop();
+    runToEnd( p, 8000 );
+    check( !p.running() && p.exitCode() == 137, "process: SIGKILL after killMs" );
+    }
+#endif
+    check( TProcess::clockMs() > 0, "process: the clock" );
+
     TProcessView *v = new TProcessView( TRect( 0, 0, 60, 10 ), 0, 0 );
     v->start( both );
     for( int i = 0; i < 1000 && v->poll(); i++ )
