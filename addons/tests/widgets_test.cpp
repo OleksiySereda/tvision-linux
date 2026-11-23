@@ -11,6 +11,8 @@
 #define Uses_TEvent
 #define Uses_TKeys
 #define Uses_TRect
+#define Uses_TGroup
+#define Uses_TInputLine
 #include <tvaddons.h>
 
 #include <stdio.h>
@@ -99,7 +101,56 @@ static void testLog()
 
     log->clear();
     check( log->lineCount() == 0 && log->position().y == 0 && log->position().x == 0, "clear" );
+
+    // find, highlight, showLine
     TObject::destroy( log );
+    log = new TLogView( TRect( 0, 0, 20, 5 ), 0, 0, 25 );
+    for( int i = 0; i < 20; i++ )
+        log->addf( i % 7 == 3 ? "line %d: Error here" : "line %d", i );
+    check( log->find( "error", 0, True ) == 3, "find: without regard to case" );
+    check( log->find( "ERROR", 4, True ) == 10 && log->find( "error", 18, True ) == 3,
+           "find: forward, round the end" );
+    check( log->find( "error", 10, False ) == 3 && log->find( "error", 3, False ) == 17,
+           "find: backward, round the start" );
+    check( log->find( "nothing", 0, True ) == -1 && log->find( "", 0, True ) == -1,
+           "find: none" );
+    log->setHighlight( "ERROR" );
+    check( log->highlightText() == "error" && log->countMatches() == 3 &&
+           log->countMatches( 10 ) == 1, "countMatches" );
+    log->scrollToPos( 0, 0 );
+    log->showLine( 17 );
+    check( log->shownLine() == 17 && log->position().y <= 17 && log->position().y + 5 > 17,
+           "showLine scrolls the line into view" );
+    log->showLine( 3 );
+    check( log->position().y <= 3, "showLine scrolls back" );
+    log->add( "x" );
+    for( int i = 0; i < 8; i++ )
+        log->add( "y" );
+    check( log->shownLine() == -1, "the shown line went out with the oldest lines" );
+    log->setHighlight( "" );
+    check( log->countMatches() == 0, "no highlight" );
+    TObject::destroy( log );
+
+    // a group shut down with the focus in an input line: the focus does
+    // not go to the log while its scroll bar (inserted first, destroyed
+    // first) is gone (make ASAN=1 check-addons sees it)
+    {
+    TGroup *g = new TGroup( TRect( 0, 0, 30, 10 ) );
+    TScrollBar *sb = new TScrollBar( TRect( 29, 0, 30, 9 ) );
+    g->insert( sb );
+    TInputLine *in = new TValidatedInputLine( TRect( 0, 9, 20, 10 ), 20, 0 );
+    g->insert( in );
+    TLogView *lv = new TLogView( TRect( 0, 0, 29, 9 ), 0, sb );
+    g->insert( lv );
+    in->select();
+    check( g->current == in, "the input line has the focus" );
+    in->hide();
+    check( g->current == lv, "hiding it moves the focus on (not while shutting down)" );
+    in->show();
+    in->select();
+    TObject::destroy( g );
+    check( true, "shut down with the focus in the input line" );
+    }
 
     // with a scroll bar the position goes to it as well
     TScrollBar *vs = new TScrollBar( TRect( 20, 0, 21, 5 ) );

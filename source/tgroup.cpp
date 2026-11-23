@@ -28,7 +28,7 @@ TView *TheTopView = 0;
 
 TGroup::TGroup( const TRect& bounds ) :
     TView(bounds), last( 0 ), phase( phFocused ), current( 0 ), buffer( 0 ),
-    lockFlag( 0 ), endState( 0 )
+    lockFlag( 0 ), endState( 0 ), closing( False )
 {
     options |= ofSelectable | ofBuffered;
     clip = getExtent();
@@ -39,8 +39,14 @@ TGroup::~TGroup()
 {
 }
 
+// Port: the subviews are destroyed one after the other.  Hiding the one
+// with the focus used to give it to another (resetCurrent), which then
+// ran with neighbours already gone: a TScroller showing its deleted scroll
+// bar, for instance.  Now the focus is taken away first and stays away.
 void TGroup::shutDown()
 {
+    setCurrent( 0, normalSelect );
+    closing = True;
     TView* p = last;
     if( p != 0 )
         do  {
@@ -374,6 +380,8 @@ void TGroup::redraw()
 
 void TGroup::resetCurrent()
 {
+    if( closing == True )
+        return;
     setCurrent( firstMatch( sfVisible, ofSelectable ), normalSelect );
 }
 
@@ -560,6 +568,7 @@ void *TGroup::read( ipstream& is )
     buffer = 0;
     lockFlag = 0;
     endState = 0;
+    closing = False;
     int count;
     is >> count;
     TView *tv;

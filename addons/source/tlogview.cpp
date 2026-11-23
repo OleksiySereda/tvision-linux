@@ -24,6 +24,8 @@
 uchar TLogView::errorColor   = 0x4F;
 uchar TLogView::warningColor = 0x6E;
 uchar TLogView::goodColor    = 0x2F;
+uchar TLogView::matchColor   = 0x30;
+uchar TLogView::foundColor   = 0x2E;
 
 static const int maxLimit = 32000;      // limits are shorts
 
@@ -34,7 +36,8 @@ TLogView::TLogView( const TRect& bounds, TScrollBar *aHScrollBar,
     autoScroll( True ),
     wheelLines( 3 ),
     shown( 0 ),
-    width( 1 )
+    width( 1 ),
+    current( -1 )
 {
     options |= ofSelectable;
     eventMask |= evMouseWheel;
@@ -66,6 +69,8 @@ void TLogView::add( const char *text, uchar color )
         lines.erase( lines.begin(), lines.begin() + k );
         shown = std::max( 0, shown - k );
         delta.y = short( std::max( 0, delta.y - k ) );
+        if( current >= 0 )
+            current = current >= k ? current - k : -1;
         if( vScrollBar != 0 )
             {
             drawLock++;
@@ -91,6 +96,7 @@ void TLogView::clear()
     lines.clear();
     shown = 0;
     width = 1;
+    current = -1;
     delta.x = delta.y = 0;
     update();
 }
@@ -209,6 +215,15 @@ void TLogView::draw()
             }
         b.moveChar( 0, ' ', color, size.x );
         b.moveStr( 0, s, color );
+        if( !highlight.empty() && i < shown && i < lineCount() )
+            {
+            uchar c = i == current ? foundColor : matchColor;
+            int n = int( highlight.size() );
+            for( int k = matchAt( i, 0 ); k >= 0; k = matchAt( i, k + n ) )
+                for( int x = std::max( k, int( delta.x ) );
+                     x < k + n && x - delta.x < size.x; x++ )
+                    b.putAttribute( ushort( x - delta.x ), c );
+            }
         writeLine( 0, short( y ), size.x, 1, b );
         }
 }
@@ -247,6 +262,92 @@ void TLogView::handleEvent( TEvent& event )
             }
         clearEvent( event );
         }
+}
+
+static char lower( char c )
+{
+    return c >= 'A' && c <= 'Z' ? char( c - 'A' + 'a' ) : c;
+}
+
+int TLogView::matchAt( int i, int from )
+{
+    const char *t = lineText( i );
+    int n = int( strlen( t ) ), m = int( highlight.size() );
+    for( int k = std::max( from, 0 ); k + m <= n; k++ )
+        {
+        int j = 0;
+        while( j < m && lower( t[k + j] ) == highlight[size_t( j )] )
+            j++;
+        if( j == m )
+            return k;
+        }
+    return -1;
+}
+
+void TLogView::setHighlight( const std::string& text )
+{
+    std::string h;
+    for( char c : text )
+        h += lower( c );
+    if( h != highlight )
+        {
+        highlight = h;
+        drawView();
+        }
+}
+
+int TLogView::find( const std::string& text, int from, Boolean forward )
+{
+    int n = lineCount();
+    if( text.empty() || n == 0 )
+        return -1;
+    std::string saved = highlight;
+    highlight.clear();
+    for( char c : text )
+        highlight += lower( c );
+    int found = -1;
+    from = std::max( 0, std::min( from, n ) );
+    for( int k = 0; k < n && found < 0; k++ )
+        {
+        int i = forward == True ? ( from + k ) % n : ( from - 1 - k + 2 * n ) % n;
+        if( matchAt( i, 0 ) >= 0 )
+            found = i;
+        }
+    highlight = saved;
+    return found;
+}
+
+int TLogView::countMatches( int line )
+{
+    if( highlight.empty() )
+        return 0;
+    int n = lineCount(), c = 0;
+    if( line >= 0 && line < n )
+        n = line;
+    for( int i = 0; i < n; i++ )
+        if( matchAt( i, 0 ) >= 0 )
+            c++;
+    return c;
+}
+
+void TLogView::showLine( int line )
+{
+    current = line;
+    if( line < 0 || line >= lineCount() )
+        {
+        current = -1;
+        drawView();
+        return;
+        }
+    int y = delta.y, x = delta.x;
+    if( line < y || line >= y + size.y )
+        y = line - size.y / 2;              // in the middle
+    int k = highlight.empty() ? -1 : matchAt( line, 0 );
+    if( k >= 0 && ( k < x || k + int( highlight.size() ) > x + size.x ) )
+        x = std::max( 0, k - size.x / 4 );
+    else if( k < 0 )
+        x = 0;
+    scrollToPos( x, y );
 }
 
 Boolean TLogView::saveToFile( const char *fileName )

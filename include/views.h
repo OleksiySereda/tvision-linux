@@ -834,6 +834,10 @@ public:
 
 private:
 
+    // set by shutDown(): the focus no longer moves from one subview to
+    // another while they are destroyed
+    Boolean closing;
+
     Boolean invalid( TView *p, ushort command );
     void focusView( TView *p, Boolean enable );
     void selectView( TView *p, Boolean enable );

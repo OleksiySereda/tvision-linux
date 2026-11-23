@@ -520,6 +520,7 @@ contain similar ones.</p>
 <tr><td><code>getAltCode()</code></td><td>The Alt-Space test never matched with a signed <code>char</code>.</td></tr>
 <tr><td>TVHC</td><td><code>getWord()</code> and <code>replaceExt()</code> returned local buffers.</td></tr>
 <tr><td>TVG17B demo</td><td><code>phone[14]</code> was one byte too short for its data.</td></tr>
+<tr><td><code>TGroup::shutDown()</code></td><td>The subviews are destroyed one after the other, the first inserted first. Hiding the one with the focus gave the focus to another, which then ran with its neighbours already freed: a <code>TScroller</code> or <code>TListViewer</code> inserted after its scroll bars showed the deleted bar when a dialog closed with the focus in an input line. The group now takes the focus away before destroying its subviews and does not move it while they go.</td></tr>
 <tr><td><code>TEditor::drawLines()</code>, <code>TListViewer</code>, <code>TInputLine</code>, <code>THelpViewer</code>, <code>TTerminal</code>, the TVDEMO file viewer</td><td>Line buffers of 256 cells overflowed in views wider than 256 columns (DOS screens had at most 132), and the editor showed garbage at its right edge.</td></tr>
 </table>"""))
 

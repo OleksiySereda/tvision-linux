@@ -795,14 +795,19 @@ TProgram::deskTop->insert( TProgram::application->validView( w ) );'''),
  "<code>warningColor</code>, <code>goodColor</code>). Keeps the last "
  "<code>maxLines</code> (2000); follows the end while it is shown "
  "(<code>autoScroll</code>); scrolls with the keys and the wheel, with or "
- "without scroll bars; <code>saveToFile()</code>. A view of lines kept "
+ "without scroll bars; <code>saveToFile()</code>; a search: "
+ "<code>find()</code>, <code>setHighlight()</code> (every place of the text "
+ "in <code>matchColor</code>), <code>showLine()</code>, "
+ "<code>countMatches()</code>. A view of lines kept "
  "elsewhere overrides <code>lineCount()</code>, <code>lineText()</code>, "
  "<code>lineColor()</code> and calls <code>update()</code>.",
 r'''TLogView *log = new TLogView( r, 0, vScroll );
 insert( log );
 log->add( "Build: 19 cells" );
 log->add( "line 3: unknown label", TLogView::errorColor );
-log->addf( "STOP after %d steps", steps );'''),
+log->addf( "STOP after %d steps", steps );
+log->setHighlight( "error" );
+log->showLine( log->find( "error", 0, True ) );'''),
 
 ("TTableView", "tableview.h", ["TListViewer"], "Uses_TTableView",
  "A list of rows with columns of text (<code>addColumn()</code>, "

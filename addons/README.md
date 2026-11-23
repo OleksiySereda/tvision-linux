@@ -233,6 +233,13 @@ log->saveToFile( "run.log" );
   colour): `errorColor` (white on red), `warningColor` (yellow on brown),
   `goodColor` (white on green), or any other.
 - Tabs become blanks and `\n` starts a new line.
+- Search: `find( "error", from, True )` returns the next line with the
+  text (without regard to case; `False`: the one before), round the end,
+  or -1. `setHighlight( "error" )` shows every place of it in `matchColor`
+  (black on cyan), `showLine( i )` scrolls line `i` into view (sideways
+  too, to the text) and shows its places in `foundColor` (yellow on
+  green); `countMatches()` counts the lines with the text, `countMatches( i )`
+  those before line `i` ("3 of 17").
 - The arrow keys, PgUp/PgDn, Home/End (and Ctrl+PgUp/PgDn) and the mouse
   wheel scroll it; it scrolls without scroll bars too, and while they are
   hidden. `scrollToPos()`, `scrollToEnd()`, `atEnd()` and `position()` do
