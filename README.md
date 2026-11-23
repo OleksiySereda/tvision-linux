@@ -231,6 +231,16 @@ sh tools/smoketest.sh
 sh tools/tmuxrun.sh bin/tvdemo 100 30 keys:F10 keys:Down shot resize:60x20 shot keys:M-x
 ```
 
+`tools/tvdrive.sh` does the same from a script file and checks the result:
+`wait: Some text` holds until the screen shows it (no pauses to guess),
+`exit: 0` checks the exit status, and a failed step prints the screen; it
+uses a tmux server of its own. The steps are listed at the top of the
+script; `../installator/tests/smoke.keys` is an example:
+
+```sh
+sh tools/tvdrive.sh -s 100x30 test.keys "bin/myapp file.txt"
+```
+
 On Windows `ctest --test-dir build -C Release` runs the tests of the add-ons;
 `tvhc` there compiles `help/demohelp.txt` into a file equal to the DOS
 `DEMOHELP.HLP` as well.

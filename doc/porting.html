@@ -530,6 +530,7 @@ layout changed); regenerate them.</li>
 <tr><td><code>bin/keytest</code></td><td>Shows the key codes, shift state and mouse reports decoded from the terminal. Ctrl-C (or q twice) quits.</td></tr>
 <tr><td><code>bin/tvhc</code></td><td>Help compiler: <code>tvhc file.txt [file.hlp [file.h]]</code>. Accepts DOS help sources; the output format is the DOS one.</td></tr>
 <tr><td><code>tools/tmuxrun.sh</code></td><td>Runs a program in a detached tmux session and sends keys, text, mouse clicks and resizes; prints screen captures. Useful for automated tests.</td></tr>
+<tr><td><code>tools/tvdrive.sh</code></td><td>The same from a script file, as a test: <code>wait:</code> holds until a text is on the screen, <code>gone:</code> until it has gone, <code>exit: N</code> checks the exit status; a failed step prints the screen and the program's stderr. A tmux server of its own.</td></tr>
 <tr><td><code>tools/smoketest.sh</code></td><td>Starts every program, checks that it draws and exits on Alt-X.</td></tr>
 <tr><td><code>tools/convert.py</code></td><td>The mechanical converter used for the port (lower-case names, LF, memory-model keywords, implicit <code>int</code>, escaped literals). Can be run on your own DOS sources as a first step.</td></tr>
 <tr><td><code>tools/mkdoc/mkdoc.py</code></td><td>Generates this documentation.</td></tr>
