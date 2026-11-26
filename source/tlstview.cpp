@@ -257,6 +257,13 @@ void TListViewer::handleEvent( TEvent& event )
                 }
             } while( mouseEvent( event, evMouseMove | evMouseAuto ) );
         focusItemNum( newItem );
+        // Without a vertical scroll bar nothing else repaints: focusItem()
+        // moves `focused` and tells the scroll bar, and it is the scroll bar's
+        // cmScrollBarChanged broadcast -- handled further down -- that calls
+        // drawView(). A list built with vScrollBar == 0 therefore moved its
+        // selection without showing it, and the highlight only caught up when
+        // the view was focused again and redrawn for another reason.
+        drawView();
         if( event.mouse.doubleClick && range > focused )
             selectItem( focused );
         clearEvent( event );
@@ -313,6 +320,7 @@ void TListViewer::handleEvent( TEvent& event )
                 }
             }
         focusItemNum(newItem);
+        drawView();                     // see the mouse branch above
         clearEvent(event);
         }
     else if( event.what == evBroadcast )
